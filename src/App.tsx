@@ -34,15 +34,23 @@ function AppRoutes() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route path="/" element={isAdmin ? <Navigate to="/admin" replace /> : <HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/" element={
+          <ProtectedRoute>{isAdmin ? <Navigate to="/admin" replace /> : <HomePage />}</ProtectedRoute>
+        } />
         <Route path="/file-grievance" element={
           <ProtectedRoute><FileGrievancePage /></ProtectedRoute>
         } />
-        <Route path="/track" element={<TrackGrievancePage />} />
-        <Route path="/announcements" element={<AnnouncementsPage />} />
-        <Route path="/appointments" element={<AppointmentsPage />} />
+        <Route path="/track" element={
+          <ProtectedRoute><TrackGrievancePage /></ProtectedRoute>
+        } />
+        <Route path="/announcements" element={
+          <ProtectedRoute><AnnouncementsPage /></ProtectedRoute>
+        } />
+        <Route path="/appointments" element={
+          <ProtectedRoute><AppointmentsPage /></ProtectedRoute>
+        } />
         <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
 
         {/* Admin Routes */}
