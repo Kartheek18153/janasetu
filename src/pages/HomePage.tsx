@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { onSnapshot, collection } from 'firebase/firestore';
+import { onSnapshot, collection, query, where } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import {
   DocumentTextIcon, MagnifyingGlassIcon, MegaphoneIcon, CalendarDaysIcon,
-  CheckCircleIcon, ClockIcon, UserGroupIcon,
+  CheckCircleIcon, ClockIcon, UserGroupIcon, ArrowRightIcon,
 } from '@heroicons/react/24/outline';
 import AppService from '../services/appService';
 import Badge from '../components/ui/Badge';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
-import { Announcement } from '../types';
+import { Announcement, Grievance } from '../types';
 
 const features = [
   { icon: DocumentTextIcon, title: 'File Grievance', desc: 'Submit your complaint online and get a unique tracking ID', link: '/file-grievance', color: 'bg-primary-500' },
@@ -27,10 +27,11 @@ const emptyStats = [
 ];
 
 export default function HomePage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(emptyStats);
+  const [myGrievances, setMyGrievances] = useState<Grievance[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -55,24 +56,26 @@ export default function HomePage() {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user) {
       setStats(emptyStats);
       return;
     }
-    const unsub = onSnapshot(collection(db, 'grievances'), (snap) => {
-      const all = snap.docs.map(d => d.data());
+    const q = query(collection(db, 'grievances'), where('citizenId', '==', user.uid));
+    const unsub = onSnapshot(q, (snap) => {
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() } as Grievance));
       const total = all.length;
       const resolved = all.filter(g => g.status === 'resolved' || g.status === 'closed').length;
       const pending = all.filter(g => g.status === 'submitted' || g.status === 'under_review').length;
+      setMyGrievances(all);
       setStats(prev => [
-        { icon: DocumentTextIcon, label: 'Total Grievances', value: total.toString(), color: 'text-primary-600' },
+        { icon: DocumentTextIcon, label: 'My Grievances', value: total.toString(), color: 'text-primary-600' },
         { icon: CheckCircleIcon, label: 'Resolved', value: resolved.toString(), color: 'text-citizen-teal' },
         { icon: ClockIcon, label: 'Pending', value: pending.toString(), color: 'text-primary-400' },
         { icon: UserGroupIcon, label: 'Active Officers', value: prev[3]?.value || '0', color: 'text-citizen-blue' },
       ]);
     });
     return unsub;
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user]);
 
   return (
     <div className="space-y-12">
@@ -158,6 +161,35 @@ export default function HomePage() {
           </div>
         )}
       </div>
+
+      {/* My Grievances */}
+      {myGrievances.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-secondary-900">My Grievances</h2>
+            <Link to="/track" className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
+              Track a Grievance <ArrowRightIcon className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {myGrievances.slice(0, 5).map(g => (
+              <Link key={g.id} to="/track" className="card card-body block hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-secondary-900 truncate">{g.title}</h3>
+                      <Badge status={g.priority} size="sm" />
+                    </div>
+                    <p className="text-xs text-secondary-500 font-mono">{g.trackingId}</p>
+                    <p className="text-sm text-secondary-600 line-clamp-1 mt-1">{g.description}</p>
+                  </div>
+                  <Badge status={g.status} size="md" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="bg-white rounded-xl border border-secondary-200 p-6 sm:p-8">

@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Disclosure, Menu, Transition } from '@headlessui/react';
-import { Bars3Icon, XMarkIcon, BellIcon } from '@heroicons/react/24/outline';
+import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../../context/AuthContext';
 
 const citizenNav = [
@@ -88,15 +88,6 @@ export default function Navbar() {
               <div className="flex items-center gap-1.5">
                 {isAuthenticated ? (
                   <>
-                    <button className={`relative p-2 rounded-lg transition-all duration-200 hover:scale-105 ${
-                      isAdmin
-                        ? 'text-secondary-400 hover:text-admin-600 hover:bg-admin-50'
-                        : 'text-secondary-400 hover:text-primary-600 hover:bg-primary-50'
-                    }`}>
-                      <BellIcon className="h-6 w-6" />
-                      <span className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white animate-pulse" />
-                    </button>
-
                     <Menu as="div" className="relative">
                       <Menu.Button className={`flex items-center gap-2 p-1.5 rounded-lg transition-all duration-200 hover:scale-105 ${
                         isAdmin ? 'hover:bg-admin-50' : 'hover:bg-primary-50'
@@ -151,15 +142,7 @@ export default function Navbar() {
                                 )}
                               </Menu.Item>
                             )}
-                            {!isAdmin && (
-                              <Menu.Item>
-                                {({ active }) => (
-                                  <Link to="/" className={`${active ? 'bg-secondary-50' : ''} block px-4 py-2 text-sm text-secondary-700 transition-colors`}>
-                                    My Dashboard
-                                  </Link>
-                                )}
-                              </Menu.Item>
-                            )}
+
                           </div>
                           <div className="border-t border-secondary-100 py-1">
                             <Menu.Item>
