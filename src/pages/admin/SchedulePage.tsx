@@ -1,0 +1,102 @@
+import { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import AppService from '../../services/appService';
+import Badge from '../../components/ui/Badge';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import EmptyState from '../../components/ui/EmptyState';
+import { CalendarDaysIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { Appointment } from '../../types';
+
+export default function AdminSchedulePage() {
+  const { user } = useAuth();
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'requested' | 'confirmed' | 'completed'>('all');
+
+  const today = new Date().toDateString();
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const all = await AppService.getAllAppointments();
+        const todayApps = all.filter(a => new Date(a.preferredDate).toDateString() === today);
+        if (user?.department) {
+          setAppointments(todayApps.filter(a => a.department === user.department));
+        } else {
+          setAppointments(todayApps);
+        }
+      } catch {} finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [user]);
+
+  const filtered = filter === 'all' ? appointments : appointments.filter(a => a.status === filter);
+
+  const updateStatus = async (id: string, status: string) => {
+    try {
+      await AppService.updateAppointmentStatus(id, status);
+      setAppointments(prev => prev.map(a => a.id === id ? { ...a, status } as Appointment : a));
+    } catch {}
+  };
+
+  return (
+    <div>
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-secondary-900">Today's Schedule</h1>
+          <p className="text-secondary-500 mt-1">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+        </div>
+        <div className="flex gap-1 bg-secondary-100 rounded-lg p-1">
+          {(['all', 'requested', 'confirmed', 'completed'] as const).map(f => (
+            <button key={f} onClick={() => setFilter(f)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${filter === f ? 'bg-white text-primary-700 shadow-sm' : 'text-secondary-500 hover:text-secondary-700'}`}
+            >{f.charAt(0).toUpperCase() + f.slice(1)}</button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? <LoadingSpinner size="lg" className="py-12" /> : filtered.length === 0 ? (
+        <EmptyState icon={<CalendarDaysIcon className="h-12 w-12" />} title="No appointments today" description="You have no scheduled appointments for today." />
+      ) : (
+        <div className="space-y-3">
+          <p className="text-sm text-secondary-500">{filtered.length} appointment{filtered.length !== 1 ? 's' : ''} today</p>
+          {filtered.map(app => (
+            <div key={app.id} className="card hover:shadow-md transition-shadow">
+              <div className="card-body">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-4">
+                    <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center shrink-0">
+                      <span className="text-primary-700 font-bold text-sm">{app.citizenName?.charAt(0) || '?'}</span>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-secondary-900">{app.citizenName}</h3>
+                      <p className="text-sm text-secondary-500">{app.purpose}</p>
+                      <div className="flex items-center gap-3 mt-1.5 text-xs text-secondary-400">
+                        <span className="flex items-center gap-1"><ClockIcon className="h-3.5 w-3.5" />{app.preferredTimeSlot}</span>
+                        <span>{app.department}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge status={app.status} size="sm" />
+                    {app.status === 'requested' && (
+                      <div className="flex gap-1">
+                        <button onClick={() => updateStatus(app.id, 'confirmed')} className="px-2 py-1 text-xs font-medium bg-green-50 text-green-700 rounded-md hover:bg-green-100">Confirm</button>
+                        <button onClick={() => updateStatus(app.id, 'cancelled')} className="px-2 py-1 text-xs font-medium bg-red-50 text-red-700 rounded-md hover:bg-red-100">Cancel</button>
+                      </div>
+                    )}
+                    {app.status === 'confirmed' && (
+                      <button onClick={() => updateStatus(app.id, 'completed')} className="px-2 py-1 text-xs font-medium bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100">Complete</button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
