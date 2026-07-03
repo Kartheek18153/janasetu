@@ -36,20 +36,16 @@ export default function Sidebar() {
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 relative ${
-                    isActive
-                      ? 'bg-admin-50 text-admin-700'
-                      : 'text-secondary-600 hover:bg-admin-50/50 hover:text-admin-600'
-                  }`}
+                  className={'group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 relative ' + (isActive
+                    ? 'bg-gradient-to-r from-admin-50 to-admin-100/80 text-admin-700 shadow-sm'
+                    : 'text-secondary-600 hover:bg-admin-50/50 hover:text-admin-600')}
                 >
                   {isActive && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-admin-500" />
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-full bg-gradient-to-b from-admin-500 to-admin-600 shadow-sm" />
                   )}
-                  <item.icon className={`mr-3 h-5 w-5 shrink-0 transition-all duration-200 ${
-                    isActive
-                      ? 'text-admin-600'
-                      : 'text-secondary-400 group-hover:text-admin-500 group-hover:scale-110'
-                  }`} />
+                  <item.icon className={'mr-3 h-5 w-5 shrink-0 transition-all duration-200 ' + (isActive
+                    ? 'text-admin-600'
+                    : 'text-secondary-400 group-hover:text-admin-500 group-hover:scale-110')} />
                   <span>{item.name}</span>
                   {isActive && (
                     <span className="ml-auto text-[10px] font-semibold text-admin-400">●</span>

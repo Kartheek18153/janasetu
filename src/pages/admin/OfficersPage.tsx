@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import AppService from '../../services/appService';
 import Badge from '../../components/ui/Badge';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import EmptyState from '../../components/ui/EmptyState';
 import Modal from '../../components/ui/Modal';
 import { Officer, TimeSlot } from '../../types';
 import { UsersIcon, PlusIcon } from '@heroicons/react/24/outline';
@@ -48,7 +49,7 @@ export default function AdminOfficersPage() {
 
   const handleAddOfficer = () => {
     const newOfficer: Officer = {
-      id: `off-${Date.now()}`,
+      id: 'off-' + Date.now(),
       name: form.name,
       designation: form.designation,
       department: form.department,
@@ -70,39 +71,41 @@ export default function AdminOfficersPage() {
           <h1 className="text-2xl font-bold text-secondary-900">Officers</h1>
           <p className="text-secondary-500 mt-1">Manage government officers and their availability</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn-primary">
-          <PlusIcon className="h-4 w-4 mr-1" /> Add Officer
+        <button onClick={() => setShowModal(true)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-admin-600 to-admin-700 text-white text-sm font-semibold hover:shadow-lg hover:shadow-admin-200/50 transition-all active:scale-[0.97]">
+          <PlusIcon className="h-4 w-4" /> Add Officer
         </button>
       </div>
 
       {loading ? (
         <LoadingSpinner size="lg" className="py-12" />
       ) : officers.length === 0 ? (
-        <div className="card p-12 text-center text-secondary-500">
-          <UsersIcon className="h-12 w-12 mx-auto mb-3 text-secondary-300" />
-          <p>No officers added yet.</p>
-        </div>
+        <EmptyState icon={<UsersIcon className="h-12 w-12" />} title="No officers" description="Add your first officer to get started." />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {officers.map(o => (
-            <div key={o.id} className="card">
+            <div key={o.id} className="card hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5">
               <div className="card-body">
                 <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="font-semibold text-secondary-900">{o.name}</h3>
-                    <p className="text-sm text-secondary-500">{o.designation}</p>
-                    <p className="text-xs text-secondary-400">{o.department}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-admin-500 to-admin-600 flex items-center justify-center shrink-0 shadow-sm">
+                      <span className="text-white font-bold text-sm">{o.name.charAt(0)}</span>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-secondary-900">{o.name}</h3>
+                      <p className="text-sm text-secondary-500">{o.designation}</p>
+                      <p className="text-xs text-secondary-400">{o.department}</p>
+                    </div>
                   </div>
-                  <div className={`px-2 py-1 rounded-full text-xs font-medium ${o.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  <span className={'px-2 py-1 rounded-full text-xs font-medium ' + (o.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
                     {o.isActive ? 'Active' : 'Inactive'}
-                  </div>
+                  </span>
                 </div>
-                <div className="text-xs text-secondary-500 space-y-1">
+                <div className="text-xs text-secondary-500 space-y-1 mt-3 pt-3 border-t border-secondary-100">
                   <p>{o.email} | {o.phone}</p>
                   <p>Max {o.maxAppointmentsPerDay} appointments/day</p>
                   <div className="flex flex-wrap gap-1 mt-2">
                     {o.availableSlots.map(s => (
-                      <span key={s} className="px-2 py-0.5 bg-primary-50 text-primary-700 rounded text-xs">{s}</span>
+                      <span key={s} className="px-2 py-0.5 bg-admin-50 text-admin-700 rounded text-xs font-medium">{s}</span>
                     ))}
                   </div>
                 </div>
@@ -155,20 +158,16 @@ export default function AdminOfficersPage() {
                   key={slot}
                   type="button"
                   onClick={() => toggleSlot(slot)}
-                  className={`p-2 rounded-lg text-xs font-medium border transition-all ${
-                    form.availableSlots.includes(slot)
-                      ? 'bg-primary-50 border-primary-500 text-primary-700'
-                      : 'bg-white border-secondary-200 text-secondary-600 hover:border-secondary-300'
-                  }`}
+                  className={'p-2 rounded-lg text-xs font-medium border transition-all duration-200 ' + (form.availableSlots.includes(slot) ? 'bg-admin-50 border-admin-500 text-admin-700 shadow-sm' : 'bg-white border-secondary-200 text-secondary-600 hover:border-admin-300 hover:bg-admin-50/50')}
                 >
                   {slot}
                 </button>
               ))}
             </div>
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <button onClick={() => setShowModal(false)} className="btn-secondary">Cancel</button>
-            <button onClick={handleAddOfficer} disabled={!form.name || !form.designation || !form.department} className="btn-primary">
+          <div className="flex justify-end gap-3 pt-4 border-t border-secondary-200">
+            <button onClick={() => setShowModal(false)} className="px-5 py-2.5 rounded-xl bg-secondary-100 text-secondary-700 text-sm font-semibold hover:bg-secondary-200 transition-all">Cancel</button>
+            <button onClick={handleAddOfficer} disabled={!form.name || !form.designation || !form.department} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-admin-600 to-admin-700 text-white text-sm font-semibold hover:shadow-lg hover:shadow-admin-200/50 transition-all active:scale-[0.97] disabled:opacity-50">
               Add Officer
             </button>
           </div>

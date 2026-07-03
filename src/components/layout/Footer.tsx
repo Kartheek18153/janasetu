@@ -22,12 +22,8 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="md:col-span-1">
             <Link to={isAdmin ? '/admin' : '/'} className="flex items-center gap-2 mb-3 group">
-              <div className={`h-8 w-8 rounded-lg flex items-center justify-center transition-all duration-300 group-hover:scale-110 ${
-                isAdmin
-                  ? 'bg-gradient-to-br from-admin-600 to-admin-700'
-                  : 'bg-gradient-to-br from-primary-600 to-primary-700'
-              }`}>
-                <span className="text-white font-bold text-xs">JS</span>
+              <div className="h-8 w-8 rounded-lg overflow-hidden transition-all duration-300 group-hover:scale-110">
+                <img src="/logo.png" alt="JanaSetu" className="h-full w-full object-cover" />
               </div>
               <span className="text-lg font-bold text-secondary-900">JanaSetu</span>
             </Link>

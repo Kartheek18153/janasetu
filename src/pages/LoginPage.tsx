@@ -40,6 +40,11 @@ export default function LoginPage() {
     setError('');
     try {
       const userProfile = await login(email, password);
+      if (role === 'admin' && userProfile.role !== 'admin') {
+        setError('Access denied. This account does not have admin privileges.');
+        setLoading(false);
+        return;
+      }
       const verified = await AppService.isEmailVerified();
       if (!verified) {
         const uid = auth.currentUser?.uid || null;
@@ -102,14 +107,14 @@ export default function LoginPage() {
       />
       {/* Background JS watermark */}
       <div className="fixed inset-0 pointer-events-none flex items-center justify-center opacity-[0.04]">
-        <span className="text-[35vw] font-black text-primary-500 select-none">JS</span>
+        <img src="/logo.png" alt="" className="w-[35vw] h-auto select-none" />
       </div>
       <style>{`html, body { background-color: #fef0db !important; }`}</style>
       <div className="relative w-full max-w-md z-10">
         <div className="text-center mb-8">
           <div className="text-3xl font-bold text-primary-700 mb-1">JanaSetu</div>
-          <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary-300/50 ring-4 ring-primary-100">
-            <span className="text-white font-bold text-xl">JS</span>
+          <div className="h-16 w-16 rounded-2xl overflow-hidden mx-auto mb-4 shadow-lg shadow-primary-300/50 ring-4 ring-primary-100">
+            <img src="/logo.png" alt="JanaSetu" className="h-full w-full object-cover" />
           </div>
           <p className="text-sm text-secondary-500">Smart Grievance Tracking System</p>
         </div>

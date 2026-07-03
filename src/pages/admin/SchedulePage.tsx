@@ -5,13 +5,20 @@ import Badge from '../../components/ui/Badge';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import EmptyState from '../../components/ui/EmptyState';
 import { CalendarDaysIcon, ClockIcon } from '@heroicons/react/24/outline';
-import { Appointment } from '../../types';
+import { Appointment, AppointmentStatus } from '../../types';
+
+const statusTabs = [
+  { label: 'All', value: 'all' as const },
+  { label: 'Requested', value: 'requested' as const },
+  { label: 'Confirmed', value: 'confirmed' as const },
+  { label: 'Completed', value: 'completed' as const },
+];
 
 export default function AdminSchedulePage() {
   const { user } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'requested' | 'confirmed' | 'completed'>('all');
+  const [filter, setFilter] = useState<'all' | AppointmentStatus>('all');
 
   const today = new Date().toDateString();
 
@@ -48,11 +55,11 @@ export default function AdminSchedulePage() {
           <h1 className="text-2xl font-bold text-secondary-900">Today's Schedule</h1>
           <p className="text-secondary-500 mt-1">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
         </div>
-        <div className="flex gap-1 bg-secondary-100 rounded-lg p-1">
-          {(['all', 'requested', 'confirmed', 'completed'] as const).map(f => (
-            <button key={f} onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${filter === f ? 'bg-white text-primary-700 shadow-sm' : 'text-secondary-500 hover:text-secondary-700'}`}
-            >{f.charAt(0).toUpperCase() + f.slice(1)}</button>
+        <div className="flex gap-1 bg-secondary-100/80 rounded-lg p-1">
+          {statusTabs.map(tab => (
+            <button key={tab.value} onClick={() => setFilter(tab.value)}
+              className={'px-3 py-1.5 text-xs font-medium rounded-md transition-all ' + (filter === tab.value ? 'bg-white text-admin-700 shadow-sm' : 'text-secondary-500 hover:text-secondary-700')}
+            >{tab.label}</button>
           ))}
         </div>
       </div>
@@ -63,12 +70,12 @@ export default function AdminSchedulePage() {
         <div className="space-y-3">
           <p className="text-sm text-secondary-500">{filtered.length} appointment{filtered.length !== 1 ? 's' : ''} today</p>
           {filtered.map(app => (
-            <div key={app.id} className="card hover:shadow-md transition-shadow">
+            <div key={app.id} className="card hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5">
               <div className="card-body">
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-4">
-                    <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center shrink-0">
-                      <span className="text-primary-700 font-bold text-sm">{app.citizenName?.charAt(0) || '?'}</span>
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-admin-500 to-admin-600 flex items-center justify-center shrink-0 shadow-sm">
+                      <span className="text-white font-bold text-sm">{app.citizenName?.charAt(0) || '?'}</span>
                     </div>
                     <div>
                       <h3 className="font-semibold text-secondary-900">{app.citizenName}</h3>
@@ -79,16 +86,16 @@ export default function AdminSchedulePage() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <Badge status={app.status} size="sm" />
                     {app.status === 'requested' && (
                       <div className="flex gap-1">
-                        <button onClick={() => updateStatus(app.id, 'confirmed')} className="px-2 py-1 text-xs font-medium bg-green-50 text-green-700 rounded-md hover:bg-green-100">Confirm</button>
-                        <button onClick={() => updateStatus(app.id, 'cancelled')} className="px-2 py-1 text-xs font-medium bg-red-50 text-red-700 rounded-md hover:bg-red-100">Cancel</button>
+                        <button onClick={() => updateStatus(app.id, 'confirmed')} className="px-2.5 py-1 text-xs font-medium bg-admin-50 text-admin-700 rounded-md hover:bg-admin-100 hover:text-admin-800 transition-all">Confirm</button>
+                        <button onClick={() => updateStatus(app.id, 'cancelled')} className="px-2.5 py-1 text-xs font-medium bg-red-50 text-red-700 rounded-md hover:bg-red-100 transition-all">Cancel</button>
                       </div>
                     )}
                     {app.status === 'confirmed' && (
-                      <button onClick={() => updateStatus(app.id, 'completed')} className="px-2 py-1 text-xs font-medium bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100">Complete</button>
+                      <button onClick={() => updateStatus(app.id, 'completed')} className="px-2.5 py-1 text-xs font-medium bg-admin-50 text-admin-700 rounded-md hover:bg-admin-100 transition-all">Complete</button>
                     )}
                   </div>
                 </div>

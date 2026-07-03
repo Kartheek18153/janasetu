@@ -13,24 +13,21 @@ import Badge from '../components/ui/Badge';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import { Announcement, Grievance } from '../types';
 
-const services = [
-  {
-    icon: DocumentTextIcon, title: 'File Grievance', desc: 'Submit your complaint online and get a unique tracking ID to monitor its progress.',
-    link: '/file-grievance', tags: ['complaint', 'grievance', 'file'],
-  },
-  {
-    icon: MagnifyingGlassIcon, title: 'Track Grievance', desc: 'Track the real-time status of any complaint using your unique tracking ID.',
-    link: '/track', tags: ['track', 'status', 'progress'],
-  },
-  {
-    icon: MegaphoneIcon, title: 'Announcements', desc: 'Stay updated with official announcements, notices and public interest messages.',
-    link: '/announcements', tags: ['announcement', 'notice', 'news'],
-  },
-  {
-    icon: CalendarDaysIcon, title: 'Book Appointment', desc: 'Schedule appointments with government officers for in-person consultations.',
-    link: '/appointments', tags: ['appointment', 'booking', 'meeting'],
-  },
+const serviceColors = [
+  { bg: 'from-primary-50 to-primary-100', iconBg: 'from-primary-500 to-primary-600', iconColor: 'text-white', accent: 'text-primary-600', badge: 'bg-primary-500/10 text-primary-700', border: 'hover:border-primary-300', shadow: 'hover:shadow-primary-200/50' },
+  { bg: 'from-citizen-teal/5 to-citizen-teal/10', iconBg: 'from-citizen-teal to-citizen-teal', iconColor: 'text-white', accent: 'text-citizen-teal', badge: 'bg-citizen-teal/10 text-citizen-teal', border: 'hover:border-citizen-teal/40', shadow: 'hover:shadow-citizen-teal/20' },
+  { bg: 'from-citizen-blue/5 to-citizen-blue/10', iconBg: 'from-citizen-blue to-citizen-blue', iconColor: 'text-white', accent: 'text-citizen-blue', badge: 'bg-citizen-blue/10 text-citizen-blue', border: 'hover:border-citizen-blue/40', shadow: 'hover:shadow-citizen-blue/20' },
+  { bg: 'from-citizen-green/5 to-citizen-green/10', iconBg: 'from-citizen-green to-citizen-green', iconColor: 'text-white', accent: 'text-citizen-green', badge: 'bg-citizen-green/10 text-citizen-green', border: 'hover:border-citizen-green/40', shadow: 'hover:shadow-citizen-green/20' },
 ];
+
+const services = [
+  { icon: DocumentTextIcon, title: 'File Grievance', desc: 'Submit your complaint online and get a unique tracking ID to monitor its progress.', link: '/file-grievance', colorIdx: 0 },
+  { icon: MagnifyingGlassIcon, title: 'Track Grievance', desc: 'Track the real-time status of any complaint using your unique tracking ID.', link: '/track', colorIdx: 1 },
+  { icon: MegaphoneIcon, title: 'Announcements', desc: 'Stay updated with official announcements, notices and public interest messages.', link: '/announcements', colorIdx: 2 },
+  { icon: CalendarDaysIcon, title: 'Book Appointment', desc: 'Schedule appointments with government officers for in-person consultations.', link: '/appointments', colorIdx: 3 },
+];
+
+const stepColors = ['#f3722c', '#43aa8b', '#577590', '#90be6d'];
 
 const steps = [
   { num: '01', title: 'Register / Login', desc: 'Create your citizen account using your email and mobile number.' },
@@ -92,7 +89,7 @@ export default function HomePage() {
 
   const notices = [
     { text: 'Last date for grievance updates extended to 31st July 2026.', link: '/announcements' },
-    { text: 'Scheduled portal maintenance: Sunday, 2:00 AM – 4:00 AM IST.', link: '/announcements' },
+    { text: 'Scheduled portal maintenance: Sunday, 2:00 AM - 4:00 AM IST.', link: '/announcements' },
     { text: 'Citizen helpline for grievance redressal: 1800-11-4000 (toll free).', link: '/announcements' },
   ];
 
@@ -194,7 +191,7 @@ export default function HomePage() {
               <Link
                 to={authHref(notices[noticeIndex].link)}
                 className="absolute inset-0 flex items-center transition-all duration-500 ease-in-out"
-                style={{ transform: `translateY(0)`, opacity: 1 }}
+                style={{ transform: 'translateY(0)', opacity: 1 }}
               >
                 <span className="text-xs text-amber-800 font-medium">{notices[noticeIndex].text}</span>
               </Link>
@@ -215,39 +212,64 @@ export default function HomePage() {
           <div className="absolute bottom-1/3 left-1/4 w-1.5 h-1.5 rounded-full bg-white/20 animate-ping" style={{ animationDuration: '5s' }} />
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
-          <div className="max-w-3xl">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 text-primary-200 text-xs font-medium mb-5">
-                <SparklesIcon className="h-3.5 w-3.5" />
-                <span>Portal Status: All Services Operational</span>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
+          <div className="flex items-center gap-12">
+            <div className="flex-1 max-w-3xl">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 text-primary-200 text-xs font-medium mb-5">
+                  <SparklesIcon className="h-3.5 w-3.5" />
+                  <span>Portal Status: All Services Operational</span>
+                </div>
+
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white leading-[1.1] tracking-tight">
+                  Bridging Citizens &{' '}
+                  <span className="text-citizen-yellow">Government</span>
+                </h1>
+                <p className="mt-5 text-base sm:text-lg text-primary-100/90 max-w-xl leading-relaxed">
+                  File complaints, track their progress in real-time, book appointments with officers, and stay informed — all from the comfort of your home.
+                </p>
+
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <Link
+                    to={isAuthenticated ? '/file-grievance' : '/register'}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-white text-primary-700 rounded-xl font-bold text-sm hover:bg-primary-50 transition-all hover:shadow-2xl hover:shadow-black/20 active:scale-[0.97]"
+                  >
+                    <DocumentTextIcon className="h-5 w-5" />
+                    {isAuthenticated ? 'File a Complaint' : 'Get Started'}
+                    <ArrowRightIcon className="h-4 w-4" />
+                  </Link>
+                  <button
+                    onClick={() => scrollTo('how')}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-sm text-white rounded-xl font-semibold text-sm border border-white/15 hover:bg-white/20 transition-all"
+                  >
+                    How It Works
+                  </button>
+                </div>
               </div>
+            </div>
 
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white leading-[1.1] tracking-tight">
-                Bridging Citizens &{' '}
-                <span className="text-citizen-yellow">Government</span>
-              </h1>
-              <p className="mt-5 text-base sm:text-lg text-primary-100/90 max-w-xl leading-relaxed">
-                File complaints, track their progress in real-time, book appointments with officers, and stay informed — all from the comfort of your home.
-              </p>
-
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link
-                  to={isAuthenticated ? '/file-grievance' : '/register'}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-white text-primary-700 rounded-xl font-bold text-sm hover:bg-primary-50 transition-all hover:shadow-2xl hover:shadow-black/20 active:scale-[0.97]"
-                >
-                  <DocumentTextIcon className="h-5 w-5" />
-                  {isAuthenticated ? 'File a Complaint' : 'Get Started'}
-                  <ArrowRightIcon className="h-4 w-4" />
-                </Link>
-                <button
-                  onClick={() => scrollTo('how')}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-sm text-white rounded-xl font-semibold text-sm border border-white/15 hover:bg-white/20 transition-all"
-                >
-                  How It Works
-                </button>
+            <div className="hidden lg:flex flex-shrink-0 items-center justify-center opacity-0 animate-fade-in-right relative -mr-12" style={{ perspective: '1200px' }}>
+              <div className="absolute inset-0 bg-gradient-to-r from-primary-700/40 via-primary-700/20 to-transparent blur-3xl scale-150" />
+              <div className="relative w-[36rem] group" style={{ perspective: '1200px' }}>
+                <div className="relative transition-all duration-700 ease-out" style={{ transformStyle: 'preserve-3d' }}>
+                  <div className="group-hover:[transform:rotateY(180deg)] transition-all duration-700 ease-out" style={{ transformStyle: 'preserve-3d' }}>
+                    <div className="backface-hidden rounded-3xl overflow-hidden">
+                      <img
+                        src="/hero-illustration.png"
+                        alt="hero illustration"
+                        className="w-full h-auto opacity-75 animate-float rounded-3xl"
+                      />
+                    </div>
+                    <div className="absolute inset-0 backface-hidden flex items-center justify-center p-8" style={{ transform: 'rotateY(180deg)' }}>
+                      <div className="bg-secondary-50/95 rounded-2xl p-6 shadow-xl">
+                        <p className="text-primary-700 text-sm font-medium leading-relaxed text-center">
+                          Digital governance empowers every citizen with transparent, accessible, and efficient public services — bridging the gap between people and government.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-
             </div>
           </div>
         </div>
@@ -257,15 +279,22 @@ export default function HomePage() {
         <section className="bg-secondary-900 py-10 sm:py-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-              {stats.map((s) => (
-                <div key={s.label}>
-                  <div className="text-3xl sm:text-4xl font-bold font-serif text-white">
-                    {isNaN(parseInt(s.value)) ? s.value : <AnimatedCounter value={s.value} />}
-                    <span className="text-citizen-yellow">+</span>
+              {stats.map((s, i) => {
+                const statColors = ['#f3722c', '#43aa8b', '#f9c74f', '#577590'];
+                return (
+                  <div key={s.label} className="relative">
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-12 h-0.5 rounded-full" style={{ backgroundColor: statColors[i] }} />
+                    <div className="text-3xl sm:text-4xl font-bold font-serif" style={{ color: statColors[i] }}>
+                      {isNaN(parseInt(s.value)) ? s.value : <AnimatedCounter value={s.value} />}
+                      <span className="text-citizen-yellow">+</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-1.5 mt-2">
+                      <s.icon className="h-3.5 w-3.5 hidden sm:block" style={{ color: statColors[i] }} />
+                      <div className="text-xs sm:text-sm text-secondary-400 tracking-wide">{s.label}</div>
+                    </div>
                   </div>
-                  <div className="text-xs sm:text-sm text-secondary-400 mt-1.5 tracking-wide">{s.label}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>
@@ -275,7 +304,7 @@ export default function HomePage() {
       <section id="how" ref={el => { sectionRefs.current[1] = el; }} className="py-14 sm:py-20 bg-white border-y border-secondary-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-xl mx-auto mb-12">
-            <span className="text-xs font-bold tracking-[1.4px] uppercase text-citizen-teal block mb-2">
+            <span className="text-xs font-bold tracking-[1.4px] uppercase block mb-2" style={{ color: stepColors[0] }}>
               Process
             </span>
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-serif text-secondary-900">
@@ -287,21 +316,27 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {steps.map((s, i) => (
-              <div key={s.num} className="relative">
-                {i < steps.length - 1 && (
-                  <div className="hidden lg:block absolute top-8 left-[60%] w-[80%] h-px border-t border-dashed border-secondary-300" />
-                )}
-                <div className="text-center">
-                  <div className="font-serif text-5xl font-black text-secondary-100 mb-3"
-                    style={{ WebkitTextStroke: '1.5px #f3722c' }}>
-                    {s.num}
+            {steps.map((s, i) => {
+              const stepColor = stepColors[i];
+              const nextColor = i < steps.length - 1 ? stepColors[i + 1] : stepColor;
+              return (
+                <div key={s.num} className="relative">
+                  {i < steps.length - 1 && (
+                    <div className="hidden lg:block absolute top-8 left-[60%] w-[80%] h-px border-t-2 border-dashed"
+                      style={{ borderColor: nextColor + '40' }} />
+                  )}
+                  <div className="text-center">
+                    <div className="font-serif text-5xl font-black mb-3"
+                      style={{ color: stepColor + '15', WebkitTextStroke: '1.5px ' + stepColor }}>
+                      {s.num}
+                    </div>
+                    <div className="w-10 h-1 rounded-full mx-auto mb-3" style={{ backgroundColor: stepColor + '30' }} />
+                    <h4 className="text-base font-bold text-secondary-900 mb-1.5">{s.title}</h4>
+                    <p className="text-sm text-secondary-500 leading-relaxed max-w-[220px] mx-auto">{s.desc}</p>
                   </div>
-                  <h4 className="text-base font-bold text-secondary-900 mb-1.5">{s.title}</h4>
-                  <p className="text-sm text-secondary-500 leading-relaxed max-w-[220px] mx-auto">{s.desc}</p>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
@@ -310,7 +345,7 @@ export default function HomePage() {
       <section id="services" ref={el => { sectionRefs.current[2] = el; }} className="py-14 sm:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-xl mx-auto mb-10">
-            <span className="text-xs font-bold tracking-[1.4px] uppercase text-citizen-teal block mb-2">
+            <span className="text-xs font-bold tracking-[1.4px] uppercase block mb-2" style={{ color: stepColors[2] }}>
               Citizen Services
             </span>
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-serif text-secondary-900">
@@ -322,22 +357,25 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {services.map((s) => (
-              <Link
-                key={s.title}
-                to={authHref(s.link)}
-                className="group bg-white border border-secondary-200 rounded-xl p-6 hover:shadow-lg hover:-translate-y-1 transition-all"
-              >
-                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary-50 to-citizen-teal/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <s.icon className="h-6 w-6 text-primary-600" />
-                </div>
-                <h3 className="text-base font-bold text-secondary-900 mb-1.5">{s.title}</h3>
-                <p className="text-sm text-secondary-500 leading-relaxed mb-3">{s.desc}</p>
-                <span className="text-xs font-bold text-citizen-teal inline-flex items-center gap-1 group-hover:gap-2 transition-all">
-                  Apply now <ChevronRightIcon className="h-3.5 w-3.5" />
-                </span>
-              </Link>
-            ))}
+            {services.map((s) => {
+              const c = serviceColors[s.colorIdx];
+              return (
+                <Link
+                  key={s.title}
+                  to={authHref(s.link)}
+                  className={'group bg-white border border-secondary-200 rounded-xl p-6 transition-all duration-300 ' + c.border + ' hover:shadow-xl ' + c.shadow + ' hover:-translate-y-1'}
+                >
+                  <div className={'w-11 h-11 rounded-xl bg-gradient-to-br ' + c.iconBg + ' flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg'}>
+                    <s.icon className={'h-6 w-6 ' + c.iconColor} />
+                  </div>
+                  <h3 className="text-base font-bold text-secondary-900 mb-1.5">{s.title}</h3>
+                  <p className="text-sm text-secondary-500 leading-relaxed mb-3">{s.desc}</p>
+                  <span className={'text-xs font-bold ' + c.accent + ' inline-flex items-center gap-1 group-hover:gap-2 transition-all'}>
+                    Apply now <ChevronRightIcon className="h-3.5 w-3.5" />
+                  </span>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -352,27 +390,27 @@ export default function HomePage() {
                 <p className="text-sm text-secondary-500 mt-1">Track and manage your complaints</p>
               </div>
               <div className="flex gap-1 p-0.5 bg-secondary-100/80 rounded-lg">
-                {(['all', 'resolved', 'pending'] as const).map(tab => (
-                  <button
-                    key={tab}
-                    onClick={() => setGrievanceTab(tab)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                      grievanceTab === tab
-                        ? 'bg-white text-primary-700 shadow-sm'
-                        : 'text-secondary-500 hover:text-secondary-700'
-                    }`}
-                  >
-                    {tab === 'all' ? 'All' : tab.charAt(0).toUpperCase() + tab.slice(1)}
-                    <span className="ml-1 text-[10px] opacity-60">
-                      ({tab === 'all' ? myGrievances.length : tab === 'resolved' ? myGrievances.filter(g => g.status === 'resolved' || g.status === 'closed').length : myGrievances.filter(g => g.status === 'submitted' || g.status === 'under_review').length})
-                    </span>
-                  </button>
-                ))}
+                {(['all', 'resolved', 'pending'] as const).map((tab, ti) => {
+                  const tabColors = ['#f3722c', '#43aa8b', '#f9c74f'];
+                  return (
+                    <button
+                      key={tab}
+                      onClick={() => setGrievanceTab(tab)}
+                      className={'px-3 py-1.5 text-xs font-medium rounded-md transition-all ' + (grievanceTab === tab ? 'bg-white shadow-sm' : 'text-secondary-500 hover:text-secondary-700')}
+                      style={grievanceTab === tab ? { color: tabColors[ti] } : {}}
+                    >
+                      {tab === 'all' ? 'All' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                      <span className="ml-1 text-[10px] opacity-60">
+                        ({tab === 'all' ? myGrievances.length : tab === 'resolved' ? myGrievances.filter(g => g.status === 'resolved' || g.status === 'closed').length : myGrievances.filter(g => g.status === 'submitted' || g.status === 'under_review').length})
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
             <div className="space-y-3">
               {filteredHomeGrievances.map(g => (
-                <Link key={g.id} to={`/track?trackingId=${g.trackingId}`} className="block bg-white border border-secondary-200 rounded-xl p-5 hover:shadow-lg transition-all hover:-translate-y-0.5">
+                <Link key={g.id} to={'/track?trackingId=' + g.trackingId} className="block bg-white border border-secondary-200 rounded-xl p-5 hover:shadow-lg transition-all hover:-translate-y-0.5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
@@ -429,9 +467,7 @@ export default function HomePage() {
       {/* ===== Back to top ===== */}
       <button
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        className={`fixed bottom-6 right-6 w-11 h-11 rounded-full bg-secondary-900 text-white shadow-xl flex items-center justify-center z-50 transition-all duration-300 hover:bg-citizen-yellow hover:text-secondary-900 ${
-          showBackTop ? 'opacity-100 pointer-events-auto translate-y-0' : 'opacity-0 pointer-events-none translate-y-3'
-        }`}
+        className={'fixed bottom-6 right-6 w-11 h-11 rounded-full bg-secondary-900 text-white shadow-xl flex items-center justify-center z-50 transition-all duration-300 hover:bg-citizen-yellow hover:text-secondary-900 ' + (showBackTop ? 'opacity-100 pointer-events-auto translate-y-0' : 'opacity-0 pointer-events-none translate-y-3')}
         aria-label="Back to top"
       >
         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
@@ -443,6 +479,21 @@ export default function HomePage() {
         .notice-enter { opacity: 0; transform: translateY(8px); }
         .notice-active { opacity: 1; transform: translateY(0); }
         .notice-exit { opacity: 0; transform: translateY(-8px); }
+        @keyframes fade-in-right {
+          from { opacity: 0; transform: translateX(40px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-12px); }
+        }
+        .animate-fade-in-right {
+          animation: fade-in-right 0.8s ease-out forwards;
+        }
+        .animate-float {
+          animation: float 4s ease-in-out infinite;
+        }
+        .backface-hidden { backface-visibility: hidden; }
       `}</style>
     </div>
   );

@@ -85,7 +85,7 @@ export default function RegisterPage() {
       />
       {/* Background JS watermark */}
       <div className="fixed inset-0 pointer-events-none flex items-center justify-center opacity-[0.04]">
-        <span className="text-[35vw] font-black text-primary-500 select-none">JS</span>
+        <img src="/logo.png" alt="" className="w-[35vw] h-auto select-none" />
       </div>
       <style>{`html, body { background-color: #fef0db !important; }`}</style>
       <div className="relative w-full max-w-md z-10">
@@ -95,8 +95,8 @@ export default function RegisterPage() {
         <div className="card">
           <div className="card-body p-8">
             <div className="text-center mb-6">
-              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary-300/50 ring-4 ring-primary-100">
-                <span className="text-white font-bold text-lg">JS</span>
+              <div className="h-12 w-12 rounded-xl overflow-hidden mx-auto mb-4 shadow-lg shadow-primary-300/50 ring-4 ring-primary-100">
+                <img src="/logo.png" alt="JanaSetu" className="h-full w-full object-cover" />
               </div>
               <h2 className="text-2xl font-bold text-secondary-900">Create Account</h2>
               <p className="text-sm text-secondary-500 mt-1">Register as a citizen to file and track grievances</p>

@@ -38,7 +38,7 @@ export default function AdminAnnouncementsPage() {
     setSubmitting(true);
     try {
       const newAnn: Announcement = {
-        id: `ann-${Date.now()}`,
+        id: 'ann-' + Date.now(),
         title: form.title,
         content: form.content,
         type: form.type,
@@ -66,7 +66,10 @@ export default function AdminAnnouncementsPage() {
           <h1 className="text-2xl font-bold text-secondary-900">Announcements</h1>
           <p className="text-secondary-500 mt-1">Publish and manage public announcements</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn-primary">New Announcement</button>
+        <button onClick={() => setShowModal(true)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-admin-600 to-admin-700 text-white text-sm font-semibold hover:shadow-lg hover:shadow-admin-200/50 transition-all active:scale-[0.97]">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+          New Announcement
+        </button>
       </div>
 
       {loading ? (
@@ -76,11 +79,12 @@ export default function AdminAnnouncementsPage() {
       ) : (
         <div className="space-y-3">
           {announcements.map(a => (
-            <div key={a.id} className="card">
+            <div key={a.id} className="card hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5">
               <div className="card-body">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
+                      <div className="w-2 h-2 rounded-full bg-admin-400 shrink-0" />
                       <h3 className="font-semibold text-secondary-900">{a.title}</h3>
                       <Badge status={a.type} size="sm" />
                       <Badge status={a.priority} size="sm" />
@@ -148,9 +152,9 @@ export default function AdminAnnouncementsPage() {
               </div>
             )}
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <button onClick={() => setShowModal(false)} className="btn-secondary">Cancel</button>
-            <button onClick={handlePublish} disabled={submitting || !form.title || !form.content} className="btn-primary">
+          <div className="flex justify-end gap-3 pt-4 border-t border-secondary-200">
+            <button onClick={() => setShowModal(false)} className="px-5 py-2.5 rounded-xl bg-secondary-100 text-secondary-700 text-sm font-semibold hover:bg-secondary-200 transition-all">Cancel</button>
+            <button onClick={handlePublish} disabled={submitting || !form.title || !form.content} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-admin-600 to-admin-700 text-white text-sm font-semibold hover:shadow-lg hover:shadow-admin-200/50 transition-all active:scale-[0.97] disabled:opacity-50">
               {submitting ? 'Publishing...' : 'Publish'}
             </button>
           </div>

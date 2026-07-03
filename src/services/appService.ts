@@ -32,7 +32,7 @@ function userProfileFromDoc(id: string, data: any): UserProfile {
   };
 }
 
-function grievanceFromDoc(id: string, data: any): Grievance {
+export function grievanceFromDoc(id: string, data: any): Grievance {
   return {
     id,
     trackingId: data.trackingId,

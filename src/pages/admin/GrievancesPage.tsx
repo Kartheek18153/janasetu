@@ -1,42 +1,48 @@
 import { useState, useEffect } from 'react';
-import AppService from '../../services/appService';
+import { useSearchParams } from 'react-router-dom';
+import { onSnapshot, collection, query, orderBy } from 'firebase/firestore';
+import { db } from '../../firebase/config';
+import { grievanceFromDoc } from '../../services/appService';
 import Badge from '../../components/ui/Badge';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import EmptyState from '../../components/ui/EmptyState';
 import StatusTimeline from '../../components/ui/StatusTimeline';
 import Modal from '../../components/ui/Modal';
 import { Grievance, GrievanceStatus } from '../../types';
-import { DocumentTextIcon, FunnelIcon } from '@heroicons/react/24/outline';
+import { DocumentTextIcon } from '@heroicons/react/24/outline';
 
-const statusFilters: { label: string; value: GrievanceStatus | 'all' }[] = [
-  { label: 'All', value: 'all' },
-  { label: 'Submitted', value: 'submitted' },
-  { label: 'Under Review', value: 'under_review' },
-  { label: 'Assigned', value: 'assigned' },
-  { label: 'In Progress', value: 'in_progress' },
-  { label: 'Resolved', value: 'resolved' },
-  { label: 'Rejected', value: 'rejected' },
+const statusFilters: { label: string; value: GrievanceStatus | 'all'; color: string }[] = [
+  { label: 'All', value: 'all', color: 'bg-admin-500' },
+  { label: 'Submitted', value: 'submitted', color: 'bg-admin-500' },
+  { label: 'Under Review', value: 'under_review', color: 'bg-admin-orange' },
+  { label: 'Assigned', value: 'assigned', color: 'bg-blue-500' },
+  { label: 'In Progress', value: 'in_progress', color: 'bg-yellow-500' },
+  { label: 'Resolved', value: 'resolved', color: 'bg-green-500' },
+  { label: 'Rejected', value: 'rejected', color: 'bg-red-500' },
 ];
 
 export default function AdminGrievancesPage() {
   const [grievances, setGrievances] = useState<Grievance[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<GrievanceStatus | 'all'>('all');
+  const [searchParams] = useSearchParams();
+  const [filter, setFilter] = useState<GrievanceStatus | 'all'>(() => {
+    const s = searchParams.get('status');
+    const valid = ['submitted', 'under_review', 'assigned', 'in_progress', 'resolved', 'rejected'];
+    return s && valid.includes(s) ? (s as GrievanceStatus) : 'all';
+  });
   const [selected, setSelected] = useState<Grievance | null>(null);
   const [statusModal, setStatusModal] = useState(false);
   const [newStatus, setNewStatus] = useState<GrievanceStatus>('under_review');
   const [statusNote, setStatusNote] = useState('');
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await AppService.getGrievances();
-        setGrievances(data);
-      } catch {} finally {
-        setLoading(false);
-      }
-    };
-    load();
+    const q = query(collection(db, 'grievances'), orderBy('updatedAt', 'desc'));
+    const unsub = onSnapshot(q, (snap) => {
+      const data = snap.docs.map(d => grievanceFromDoc(d.id, d.data()));
+      setGrievances(data);
+      setLoading(false);
+    }, () => setLoading(false));
+    return unsub;
   }, []);
 
   const filtered = filter === 'all' ? grievances : grievances.filter(g => g.status === filter);
@@ -82,26 +88,27 @@ export default function AdminGrievancesPage() {
         </div>
       </div>
 
-      {/* Status filter tabs */}
       <div className="flex flex-wrap gap-2">
-        {statusFilters.map(f => (
-          <button
-            key={f.value}
-            onClick={() => setFilter(f.value)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors relative ${
-              filter === f.value ? 'bg-primary-600 text-white' : 'bg-white text-secondary-600 hover:bg-secondary-100 border border-secondary-200'
-            }`}
-          >
-            {f.label}
-            {f.value !== 'all' && (
-              <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${
-                filter === f.value ? 'bg-white/20' : 'bg-secondary-100 text-secondary-500'
-              }`}>
-                {counts[f.value] || 0}
+        {statusFilters.map(f => {
+          const isActive = filter === f.value;
+          return (
+            <button
+              key={f.value}
+              onClick={() => setFilter(f.value)}
+              className={'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 relative ' + (isActive ? 'text-white shadow-md scale-[1.02]' : 'bg-white text-secondary-600 hover:bg-admin-50 hover:text-admin-700 border border-secondary-200 hover:border-admin-200')}
+            >
+              {isActive && <span className={'absolute inset-0 rounded-lg ' + (f.value === 'all' ? 'bg-admin-500' : f.color + ' opacity-80')} />}
+              <span className="relative z-10 flex items-center gap-2">
+                {f.label}
+                {f.value !== 'all' && (
+                  <span className={'text-xs px-1.5 py-0.5 rounded-full ' + (isActive ? 'bg-white/20' : 'bg-secondary-100 text-secondary-500')}>
+                    {counts[f.value] || 0}
+                  </span>
+                )}
               </span>
-            )}
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
 
       {loading ? (
@@ -111,15 +118,12 @@ export default function AdminGrievancesPage() {
       ) : (
         <div className="space-y-3">
           {filtered.map(g => (
-            <div
-              key={g.id}
-              onClick={() => setSelected(g)}
-              className="card cursor-pointer hover:shadow-md transition-shadow"
-            >
+            <div key={g.id} onClick={() => setSelected(g)} className="card cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5">
               <div className="card-body">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
+                      <div className="w-2 h-2 rounded-full bg-admin-400 shrink-0" />
                       <h3 className="font-semibold text-secondary-900 truncate">{g.title}</h3>
                       <Badge status={g.priority} size="sm" />
                     </div>
@@ -151,29 +155,29 @@ export default function AdminGrievancesPage() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-              <div>
-                <p className="text-secondary-500">Citizen</p>
-                <p className="font-medium">{selected.citizenName}</p>
+              <div className="p-3 rounded-lg bg-admin-50/50">
+                <p className="text-secondary-500 text-xs">Citizen</p>
+                <p className="font-medium text-secondary-900">{selected.citizenName}</p>
                 <p className="text-xs text-secondary-400">{selected.citizenPhone}</p>
               </div>
-              <div>
-                <p className="text-secondary-500">Department</p>
-                <p className="font-medium">{selected.department}</p>
+              <div className="p-3 rounded-lg bg-admin-50/50">
+                <p className="text-secondary-500 text-xs">Department</p>
+                <p className="font-medium text-secondary-900">{selected.department}</p>
               </div>
-              <div>
-                <p className="text-secondary-500">Priority</p>
+              <div className="p-3 rounded-lg bg-admin-50/50">
+                <p className="text-secondary-500 text-xs">Priority</p>
                 <Badge status={selected.priority} />
               </div>
-              <div>
-                <p className="text-secondary-500">Assigned To</p>
-                <p className="font-medium">{selected.assignedToName || 'Not assigned'}</p>
+              <div className="p-3 rounded-lg bg-admin-50/50">
+                <p className="text-secondary-500 text-xs">Assigned To</p>
+                <p className="font-medium text-secondary-900">{selected.assignedToName || 'Not assigned'}</p>
               </div>
             </div>
 
             <StatusTimeline events={selected.timeline} />
 
-            <div className="flex justify-end gap-3 pt-4 border-t">
-              <button onClick={() => { setSelected(selected); setStatusModal(true); }} className="btn-primary">
+            <div className="flex justify-end gap-3 pt-4 border-t border-secondary-200">
+              <button onClick={() => { setSelected(selected); setStatusModal(true); }} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-admin-600 to-admin-700 text-white text-sm font-semibold hover:shadow-lg hover:shadow-admin-200/50 transition-all active:scale-[0.97]">
                 Update Status
               </button>
             </div>
@@ -193,17 +197,11 @@ export default function AdminGrievancesPage() {
           </div>
           <div>
             <label className="label">Note/Description</label>
-            <textarea
-              value={statusNote}
-              onChange={(e) => setStatusNote(e.target.value)}
-              className="input resize-y"
-              rows={3}
-              placeholder="Describe the action taken..."
-            />
+            <textarea value={statusNote} onChange={(e) => setStatusNote(e.target.value)} className="input resize-y" rows={3} placeholder="Describe the action taken..." />
           </div>
-          <div className="flex justify-end gap-3">
-            <button onClick={() => setStatusModal(false)} className="btn-secondary">Cancel</button>
-            <button onClick={handleUpdateStatus} disabled={!statusNote.trim()} className="btn-primary">Update</button>
+          <div className="flex justify-end gap-3 pt-4 border-t border-secondary-200">
+            <button onClick={() => setStatusModal(false)} className="px-5 py-2.5 rounded-xl bg-secondary-100 text-secondary-700 text-sm font-semibold hover:bg-secondary-200 transition-all">Cancel</button>
+            <button onClick={handleUpdateStatus} disabled={!statusNote.trim()} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-admin-600 to-admin-700 text-white text-sm font-semibold hover:shadow-lg hover:shadow-admin-200/50 transition-all active:scale-[0.97] disabled:opacity-50">Update</button>
           </div>
         </div>
       </Modal>

@@ -67,12 +67,8 @@ export default function Navbar() {
             <div className="flex justify-between h-16">
               <div className="flex items-center">
                 <Link to={isAdmin ? '/admin' : '/'} className="flex items-center gap-2 group">
-                  <div className={`h-9 w-9 rounded-lg flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg ${
-                    isAdmin
-                      ? 'bg-gradient-to-br from-admin-600 to-admin-700 group-hover:shadow-admin-200/50'
-                      : 'bg-gradient-to-br from-primary-600 to-primary-700 group-hover:shadow-primary-200/50'
-                  }`}>
-                    <span className="text-white font-bold text-sm">JS</span>
+                  <div className="h-9 w-9 rounded-lg overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+                    <img src="/logo.png" alt="JanaSetu" className="h-full w-full object-cover" />
                   </div>
                   <span className="text-xl font-bold text-secondary-900 hidden sm:block">JanaSetu</span>
                 </Link>
