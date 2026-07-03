@@ -4,9 +4,10 @@ import { useAuth } from '../context/AuthContext';
 import AppService from '../services/appService';
 import { sendVerificationCodeEmail } from '../services/emailService';
 import { auth } from '../firebase/config';
+import { isDisposableEmail } from '../utils/emailValidation';
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const { register, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -18,6 +19,9 @@ export default function RegisterPage() {
   const [showVerify, setShowVerify] = useState(false);
   const [verifyError, setVerifyError] = useState('');
   const [codeSent, setCodeSent] = useState(false);
+  const [codeSendError, setCodeSendError] = useState('');
+  const [fallbackCode, setFallbackCode] = useState('');
+  const [resending, setResending] = useState(false);
 
   const update = (f: string, v: string) => { setForm(prev => ({ ...prev, [f]: v })); setTouched(prev => ({ ...prev, [f]: true })); };
 
@@ -33,14 +37,25 @@ export default function RegisterPage() {
     if (form.password !== form.confirmPassword) {
       setError('Passwords do not match'); return;
     }
+    if (await isDisposableEmail(form.email)) {
+      setError('Temporary email addresses are not allowed. Please use a permanent email.'); return;
+    }
+    if (await AppService.checkNameExists(form.name)) {
+      setError('This username is already taken. Please choose another.'); return;
+    }
     setLoading(true);
     setError('');
     try {
       await register({ email: form.email, password: form.password, name: form.name, phone: form.phone });
       const code = await AppService.generateVerificationCode(auth.currentUser!.uid);
-      sendVerificationCodeEmail(form.email, code, form.name);
+      setFallbackCode(code);
+      try {
+        await sendVerificationCodeEmail(form.email, code, form.name);
+        setCodeSent(true);
+      } catch (emailErr: any) {
+        setCodeSendError(emailErr.message || 'Email delivery failed. Your verification code is shown below.');
+      }
       setShowVerify(true);
-      setCodeSent(true);
     } catch (err: any) {
       setError(err.message || 'Registration failed');
     } finally {
@@ -53,6 +68,7 @@ export default function RegisterPage() {
     setVerifyError('');
     const ok = await AppService.verifyEmailCode(auth.currentUser.uid, enteredCode);
     if (ok) {
+      await refreshProfile();
       navigate('/');
     } else {
       setVerifyError('Invalid or expired verification code');
@@ -60,12 +76,26 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center">
-      <div className="w-full max-w-md">
+    <div className="relative min-h-screen flex items-center justify-center px-4 py-12">
+      {/* Full-window background */}
+      <div className="fixed inset-0 pointer-events-none" style={{ backgroundColor: '#fef0db' }} />
+      {/* Texture overlay */}
+      <div className="fixed inset-0 pointer-events-none opacity-[0.35]"
+        style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'40\' height=\'40\' viewBox=\'0 0 40 40\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Ccircle cx=\'20\' cy=\'20\' r=\'1\' fill=\'%23f3722c\' fill-opacity=\'0.3\'/%3E%3C/svg%3E")', backgroundSize: '40px 40px' }}
+      />
+      {/* Background JS watermark */}
+      <div className="fixed inset-0 pointer-events-none flex items-center justify-center opacity-[0.04]">
+        <span className="text-[35vw] font-black text-primary-500 select-none">JS</span>
+      </div>
+      <style>{`html, body { background-color: #fef0db !important; }`}</style>
+      <div className="relative w-full max-w-md z-10">
+        <div className="text-center mb-6">
+          <div className="text-3xl font-bold text-primary-700 mb-2">JanaSetu</div>
+        </div>
         <div className="card">
           <div className="card-body p-8">
             <div className="text-center mb-6">
-              <div className="h-12 w-12 rounded-xl bg-primary-600 flex items-center justify-center mx-auto mb-4">
+              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary-300/50 ring-4 ring-primary-100">
                 <span className="text-white font-bold text-lg">JS</span>
               </div>
               <h2 className="text-2xl font-bold text-secondary-900">Create Account</h2>
@@ -177,6 +207,11 @@ export default function RegisterPage() {
                   A verification code has been sent to <strong>{form.email}</strong>. 
                   Please check your inbox and enter the code below. (Valid for 5 minutes)
                 </p>
+                {codeSendError && (
+                  <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
+                    {codeSendError}
+                  </div>
+                )}
                 <input
                   type="text"
                   value={enteredCode}
@@ -189,11 +224,27 @@ export default function RegisterPage() {
                 <button onClick={handleVerifyCode} disabled={enteredCode.length !== 6} className="btn-primary w-full">
                   Verify & Continue
                 </button>
-                {!codeSent && (
-                  <p className="text-xs text-amber-600 mt-3">
-                    Note: Configure EmailJS credentials in <code className="text-xs">src/services/emailService.ts</code> to enable email delivery. The code is logged to the console as a fallback.
-                  </p>
-                )}
+                <button
+                  onClick={async () => {
+                    if (!auth.currentUser) return;
+                    setResending(true);
+                    setCodeSendError('');
+                    try {
+                      const code = await AppService.generateVerificationCode(auth.currentUser.uid);
+                      setFallbackCode(code);
+                      await sendVerificationCodeEmail(form.email, code, form.name);
+                      setCodeSent(true);
+                    } catch (emailErr: any) {
+                      setCodeSendError(emailErr.message || 'Email delivery failed. Your verification code is shown below.');
+                    } finally {
+                      setResending(false);
+                    }
+                  }}
+                  disabled={resending}
+                  className="mt-2 text-sm text-primary-600 hover:text-primary-700 font-medium disabled:opacity-50"
+                >
+                  {resending ? 'Resending...' : 'Resend Code'}
+                </button>
               </div>
             )}
           </div>

@@ -3,7 +3,8 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import './index.css'
-import { seedFirebase } from './services/seedService'
+import { seedFirebase, clearUsers } from './services/seedService'
+if (import.meta.env.DEV) (window as any).clearUsers = clearUsers
 
 seedFirebase()
 

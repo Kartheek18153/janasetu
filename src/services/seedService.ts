@@ -1,8 +1,8 @@
 import { db } from '../firebase/config';
-import { collection, addDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
 import { auth } from '../firebase/config';
-import { setDoc, getDoc, doc } from 'firebase/firestore';
+import { setDoc, doc } from 'firebase/firestore';
 
 const SEED_KEY = 'janasetu_seeded_v3';
 
@@ -92,6 +92,14 @@ export async function seedFirebase() {
   } catch (err) {
     console.error('Seed error:', err);
   }
+}
+
+export async function clearUsers() {
+  const snap = await getDocs(collection(db, 'users'));
+  const promises = snap.docs.map(d => deleteDoc(doc(db, 'users', d.id)));
+  await Promise.all(promises);
+  localStorage.removeItem(SEED_KEY);
+  console.log(`Deleted ${snap.size} user documents`);
 }
 
 export default seedFirebase;

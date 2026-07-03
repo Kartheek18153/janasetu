@@ -46,6 +46,7 @@ export default function Navbar() {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
 
   const handleLogout = async () => {
     await logout();
@@ -75,14 +76,16 @@ export default function Navbar() {
                   </div>
                   <span className="text-xl font-bold text-secondary-900 hidden sm:block">JanaSetu</span>
                 </Link>
-                <div className="hidden md:flex md:ml-10 md:space-x-1">
-                  {navItems.map((item) => (
-                    <NavLink key={item.name} name={item.name} href={item.href} isAdmin={isAdmin} />
-                  ))}
-                  {isAdmin && (
-                    <NavLink name="Announcements" href="/announcements" isAdmin={isAdmin} />
-                  )}
-                </div>
+                {!isAuthPage && (
+                  <div className="hidden md:flex md:ml-10 md:space-x-1">
+                    {navItems.map((item) => (
+                      <NavLink key={item.name} name={item.name} href={item.href} isAdmin={isAdmin} />
+                    ))}
+                    {isAdmin && (
+                      <NavLink name="Announcements" href="/announcements" isAdmin={isAdmin} />
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center gap-1.5">
@@ -197,7 +200,7 @@ export default function Navbar() {
 
           <Disclosure.Panel className="md:hidden border-t border-secondary-200">
             <div className="px-4 py-3 space-y-1">
-              {navItems.map((item) => (
+              {!isAuthPage && navItems.map((item) => (
                 <Disclosure.Button
                   key={item.name}
                   as={Link}
@@ -211,7 +214,7 @@ export default function Navbar() {
                   {item.name}
                 </Disclosure.Button>
               ))}
-              {isAdmin && (
+              {!isAuthPage && isAdmin && (
                 <Disclosure.Button
                   as={Link}
                   to="/announcements"
@@ -224,13 +227,15 @@ export default function Navbar() {
                   Announcements
                 </Disclosure.Button>
               )}
-              <Disclosure.Button
-                as={Link}
-                to="/account"
-                className="block px-3 py-2 rounded-lg text-sm font-medium text-secondary-600 hover:text-secondary-900 hover:bg-secondary-100 transition-colors"
-              >
-                Account Settings
-              </Disclosure.Button>
+              {!isAuthPage && (
+                <Disclosure.Button
+                  as={Link}
+                  to="/account"
+                  className="block px-3 py-2 rounded-lg text-sm font-medium text-secondary-600 hover:text-secondary-900 hover:bg-secondary-100 transition-colors"
+                >
+                  Account Settings
+                </Disclosure.Button>
+              )}
             </div>
           </Disclosure.Panel>
         </>

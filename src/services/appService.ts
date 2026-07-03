@@ -86,7 +86,8 @@ export const AppService = {
 
     const profile: UserProfile = {
       uid: cred.user.uid, email, name: cred.user.displayName || email.split('@')[0],
-      phone: '', role: expectedRole, createdAt: new Date(), updatedAt: new Date(), isVerified: true,
+      phone: '', role: expectedRole, createdAt: new Date(), updatedAt: new Date(),
+      isVerified: expectedRole === 'admin' ? true : cred.user.emailVerified,
     };
     await setDoc(doc(db, 'users', cred.user.uid), profile);
     return profile;
@@ -120,7 +121,7 @@ export const AppService = {
       role: 'citizen',
       createdAt: new Date(),
       updatedAt: new Date(),
-      isVerified: true,
+      isVerified: false,
     };
 
     await setDoc(doc(db, 'users', cred.user.uid), profile);
@@ -324,6 +325,12 @@ export const AppService = {
 
   async updateUserProfile(uid: string, data: Partial<UserProfile>): Promise<void> {
     await updateDoc(doc(db, 'users', uid), { ...data, updatedAt: serverTimestamp() });
+  },
+
+  async checkNameExists(name: string): Promise<boolean> {
+    const q = query(collection(db, 'users'), where('name', '==', name));
+    const snap = await getDocs(q);
+    return !snap.empty;
   },
 
   async getEmailVerified(): Promise<boolean> {

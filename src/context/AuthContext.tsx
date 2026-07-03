@@ -10,10 +10,12 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   isCitizen: boolean;
+  isVerified: boolean;
   login: (email: string, password: string) => Promise<UserProfile>;
   register: (data: { email: string; password: string; name: string; phone: string }) => Promise<void>;
   loginWithGoogle: () => Promise<UserProfile>;
   logout: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -89,16 +91,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const refreshProfile = async () => {
+    const profile = await AppService.getCurrentUser();
+    if (profile) setUser(profile);
+  };
+
   const value: AuthContextType = {
     user,
     loading,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
     isCitizen: user?.role === 'citizen',
+    isVerified: user?.isVerified ?? false,
     login,
     register,
     loginWithGoogle,
     logout,
+    refreshProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

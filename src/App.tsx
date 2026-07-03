@@ -37,7 +37,7 @@ function AppRoutes() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/" element={
-          <ProtectedRoute>{isAdmin ? <Navigate to="/admin" replace /> : <HomePage />}</ProtectedRoute>
+          isAdmin ? <Navigate to="/admin" replace /> : <HomePage />
         } />
         <Route path="/file-grievance" element={
           <ProtectedRoute><FileGrievancePage /></ProtectedRoute>

@@ -8,10 +8,12 @@ import { auth } from '../firebase/config';
 type LoginRole = 'citizen' | 'admin';
 
 export default function LoginPage() {
-  const { login, loginWithGoogle } = useAuth();
+  const { login, loginWithGoogle, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [role, setRole] = useState<LoginRole>((searchParams.get('role') as LoginRole) || 'citizen');
+  const roleParam = searchParams.get('role') as LoginRole;
+  const redirect = searchParams.get('redirect') || '/';
+  const [role, setRole] = useState<LoginRole>(roleParam || 'citizen');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -24,6 +26,9 @@ export default function LoginPage() {
   const [verifyError, setVerifyError] = useState('');
   const [pendingUid, setPendingUid] = useState<string | null>(null);
   const [pendingName, setPendingName] = useState('');
+  const [resending, setResending] = useState(false);
+  const [codeSendError, setCodeSendError] = useState('');
+  const [fallbackCode, setFallbackCode] = useState('');
 
   const touchField = (f: string) => setTouched(prev => ({ ...prev, [f]: true }));
 
@@ -41,12 +46,17 @@ export default function LoginPage() {
         setPendingUid(uid);
         setPendingName(userProfile.name);
         const code = await AppService.generateVerificationCode(uid!);
-        sendVerificationCodeEmail(email, code, userProfile.name);
+        setFallbackCode(code);
+        try {
+          await sendVerificationCodeEmail(email, code, userProfile.name);
+        } catch (emailErr: any) {
+          setCodeSendError(emailErr.message || 'Email delivery failed. Your verification code is shown below.');
+        }
         setShowVerify(true);
         setLoading(false);
         return;
       }
-      navigate(userProfile.role === 'admin' ? '/admin' : '/');
+      navigate(userProfile.role === 'admin' ? '/admin' : redirect);
     } catch (err: any) {
       setError(err.message || 'Login failed');
     } finally {
@@ -59,8 +69,9 @@ export default function LoginPage() {
     setVerifyError('');
     const ok = await AppService.verifyEmailCode(pendingUid, enteredCode);
     if (ok) {
+      await refreshProfile();
       const snap = await AppService.getCurrentUser();
-      navigate(snap?.role === 'admin' ? '/admin' : '/');
+      navigate(snap?.role === 'admin' ? '/admin' : redirect);
     } else {
       setVerifyError('Invalid or expired verification code');
     }
@@ -71,7 +82,7 @@ export default function LoginPage() {
     setError('');
     try {
       const userProfile = await loginWithGoogle();
-      navigate(userProfile.role === 'admin' ? '/admin' : '/');
+      navigate(userProfile.role === 'admin' ? '/admin' : redirect);
     } catch (err: any) {
       if (err.code !== 'auth/popup-closed-by-user') {
         setError(err.message || 'Google sign-in failed');
@@ -82,14 +93,25 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
+    <div className="relative min-h-screen flex items-center justify-center px-4 py-12">
+      {/* Full-window background */}
+      <div className="fixed inset-0 pointer-events-none" style={{ backgroundColor: '#fef0db' }} />
+      {/* Texture overlay */}
+      <div className="fixed inset-0 pointer-events-none opacity-[0.35]"
+        style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'40\' height=\'40\' viewBox=\'0 0 40 40\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Ccircle cx=\'20\' cy=\'20\' r=\'1\' fill=\'%23f3722c\' fill-opacity=\'0.3\'/%3E%3C/svg%3E")', backgroundSize: '40px 40px' }}
+      />
+      {/* Background JS watermark */}
+      <div className="fixed inset-0 pointer-events-none flex items-center justify-center opacity-[0.04]">
+        <span className="text-[35vw] font-black text-primary-500 select-none">JS</span>
+      </div>
+      <style>{`html, body { background-color: #fef0db !important; }`}</style>
+      <div className="relative w-full max-w-md z-10">
         <div className="text-center mb-8">
-          <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary-200/50 ring-4 ring-primary-50">
+          <div className="text-3xl font-bold text-primary-700 mb-1">JanaSetu</div>
+          <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary-300/50 ring-4 ring-primary-100">
             <span className="text-white font-bold text-xl">JS</span>
           </div>
-          <h1 className="text-2xl font-bold text-secondary-900">Welcome to JanaSetu</h1>
-          <p className="text-sm text-secondary-500 mt-1">Smart Grievance Tracking System</p>
+          <p className="text-sm text-secondary-500">Smart Grievance Tracking System</p>
         </div>
 
         <div className="card overflow-hidden shadow-lg shadow-secondary-200/50">
@@ -147,6 +169,11 @@ export default function LoginPage() {
                   A verification code has been sent to <strong>{email}</strong>.
                   Please check your inbox and enter the code below. (Valid for 5 minutes)
                 </p>
+                {codeSendError && (
+                  <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
+                    {codeSendError}
+                  </div>
+                )}
                 <input
                   type="text"
                   value={enteredCode}
@@ -158,6 +185,26 @@ export default function LoginPage() {
                 {verifyError && <p className="text-xs text-red-500 mb-3">{verifyError}</p>}
                 <button onClick={handleVerifyCode} disabled={enteredCode.length !== 6} className="btn-primary w-full">
                   Verify & Sign In
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!pendingUid) return;
+                    setResending(true);
+                    setCodeSendError('');
+                    try {
+                      const code = await AppService.generateVerificationCode(pendingUid);
+                      setFallbackCode(code);
+                      await sendVerificationCodeEmail(email, code, pendingName);
+                    } catch (emailErr: any) {
+                      setCodeSendError(emailErr.message || 'Email delivery failed. Your verification code is shown below.');
+                    } finally {
+                      setResending(false);
+                    }
+                  }}
+                  disabled={resending}
+                  className="mt-2 text-sm text-primary-600 hover:text-primary-700 font-medium disabled:opacity-50"
+                >
+                  {resending ? 'Resending...' : 'Resend Code'}
                 </button>
               </div>
             ) : (
