@@ -15,23 +15,22 @@ export default function TrackGrievance({ initialTrackingId }: Props) {
   const [grievance, setGrievance] = useState<Grievance | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [searched, setSearched] = useState(false);
 
   useEffect(() => {
     if (initialTrackingId) {
-      handleSearch();
+      setTrackingId(initialTrackingId);
+      searchByTrackingId(initialTrackingId);
     }
-  }, []);
+  }, [initialTrackingId]);
 
-  const handleSearch = async () => {
-    const id = (initialTrackingId || trackingId).trim().toUpperCase();
-    if (!id) return;
+  const searchByTrackingId = async (id: string) => {
+    const trimmed = id.trim().toUpperCase();
+    if (!trimmed) return;
     setLoading(true);
     setError('');
     setGrievance(null);
-    setSearched(true);
     try {
-      const result = await AppService.getGrievanceByTrackingId(id);
+      const result = await AppService.getGrievanceByTrackingId(trimmed);
       if (result) {
         setGrievance(result);
       } else {
@@ -43,6 +42,8 @@ export default function TrackGrievance({ initialTrackingId }: Props) {
       setLoading(false);
     }
   };
+
+  const handleSearch = () => searchByTrackingId(trackingId);
 
   return (
     <div className="max-w-2xl mx-auto">

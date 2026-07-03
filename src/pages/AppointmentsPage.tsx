@@ -22,6 +22,7 @@ export default function AppointmentsPage() {
   const [form, setForm] = useState({
     department: '', officerId: '', purpose: '', preferredDate: '', preferredTimeSlot: '',
   });
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const load = async () => {
@@ -54,8 +55,11 @@ export default function AppointmentsPage() {
 
   const selectedOfficer = officers.find(o => o.id === form.officerId);
 
+  const touchField = (f: string) => setTouched(prev => ({ ...prev, [f]: true }));
+
   const handleBook = async () => {
     if (!isAuthenticated || !user) return;
+    setTouched({ department: true, officerId: true, purpose: true, preferredDate: true, preferredTimeSlot: true });
     setSubmitting(true);
     try {
       const off = officers.find(o => o.id === form.officerId)!;
@@ -96,7 +100,7 @@ export default function AppointmentsPage() {
         <button
           onClick={() => {
             if (!isAuthenticated) { setError('Please sign in first'); return; }
-            setSuccess(null); setShowModal(true);
+            setSuccess(null); setTouched({}); setShowModal(true);
           }}
           className="btn-primary"
         >
@@ -176,7 +180,7 @@ export default function AppointmentsPage() {
                     <div
                       key={o.id}
                       className="p-4 rounded-xl border border-secondary-200 bg-white hover:border-primary-300 hover:shadow-md transition-all cursor-pointer"
-                      onClick={() => { setSuccess(null); setShowModal(true); setForm(prev => ({ ...prev, department: o.department, officerId: o.id })); }}
+                      onClick={() => { setSuccess(null); setTouched({}); setShowModal(true); setForm(prev => ({ ...prev, department: o.department, officerId: o.id })); }}
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div>
@@ -203,7 +207,7 @@ export default function AppointmentsPage() {
         </>
       )}
 
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Book Appointment" size="lg">
+      <Modal isOpen={showModal} onClose={() => { setShowModal(false); setTouched({}); }} title="Book Appointment" size="lg">
         {!isAuthenticated ? (
           <div className="text-center py-6">
             <p className="text-secondary-600 mb-4">Please sign in to book an appointment.</p>
@@ -213,10 +217,15 @@ export default function AppointmentsPage() {
           <div className="space-y-4">
             <div>
               <label className="label">Department</label>
-              <select value={form.department} onChange={(e) => setForm(prev => ({ ...prev, department: e.target.value, officerId: '' }))} className="input">
+              <select
+                value={form.department}
+                onChange={(e) => { setForm(prev => ({ ...prev, department: e.target.value, officerId: '' })); touchField('department'); }}
+                className={`input ${touched.department && !form.department ? 'border-red-300' : ''}`}
+              >
                 <option value="">Select department</option>
                 {departments.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
+              {touched.department && !form.department && <p className="text-xs text-red-500 mt-1">Department is required</p>}
             </div>
 
             {filteredOfficers.length > 0 && (
@@ -227,11 +236,11 @@ export default function AppointmentsPage() {
                     <button
                       key={o.id}
                       type="button"
-                      onClick={() => setForm(prev => ({ ...prev, officerId: o.id }))}
+                      onClick={() => { setForm(prev => ({ ...prev, officerId: o.id })); touchField('officerId'); }}
                       className={`p-3 rounded-xl border-2 text-left text-sm transition-all ${
                         form.officerId === o.id
                           ? 'border-primary-500 bg-primary-50'
-                          : 'border-secondary-200 hover:border-secondary-300 bg-white'
+                          : touched.officerId && !form.officerId ? 'border-red-300' : 'border-secondary-200 hover:border-secondary-300 bg-white'
                       }`}
                     >
                       <p className="font-semibold text-secondary-900">{o.name}</p>
@@ -244,6 +253,7 @@ export default function AppointmentsPage() {
                     </button>
                   ))}
                 </div>
+                {touched.officerId && !form.officerId && <p className="text-xs text-red-500 mt-1">Please select an officer</p>}
               </div>
             )}
 
@@ -251,31 +261,50 @@ export default function AppointmentsPage() {
               <>
                 <div>
                   <label className="label">Purpose</label>
-                  <input type="text" value={form.purpose} onChange={(e) => setForm(prev => ({ ...prev, purpose: e.target.value }))} className="input" placeholder="Brief purpose of your visit" />
+                  <input
+                    type="text"
+                    value={form.purpose}
+                    onChange={(e) => { setForm(prev => ({ ...prev, purpose: e.target.value })); touchField('purpose'); }}
+                    className={`input ${touched.purpose && !form.purpose ? 'border-red-300' : ''}`}
+                    placeholder="Brief purpose of your visit"
+                  />
+                  {touched.purpose && !form.purpose && <p className="text-xs text-red-500 mt-1">Purpose is required</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="label">Preferred Date</label>
-                    <input type="date" value={form.preferredDate} onChange={(e) => setForm(prev => ({ ...prev, preferredDate: e.target.value }))} min={minDate} className="input" />
+                    <input
+                      type="date"
+                      value={form.preferredDate}
+                      onChange={(e) => { setForm(prev => ({ ...prev, preferredDate: e.target.value })); touchField('preferredDate'); }}
+                      min={minDate}
+                      className={`input ${touched.preferredDate && !form.preferredDate ? 'border-red-300' : ''}`}
+                    />
+                    {touched.preferredDate && !form.preferredDate && <p className="text-xs text-red-500 mt-1">Date is required</p>}
                   </div>
                   <div>
                     <label className="label">Preferred Time</label>
-                    <select value={form.preferredTimeSlot} onChange={(e) => setForm(prev => ({ ...prev, preferredTimeSlot: e.target.value }))} className="input">
+                    <select
+                      value={form.preferredTimeSlot}
+                      onChange={(e) => { setForm(prev => ({ ...prev, preferredTimeSlot: e.target.value })); touchField('preferredTimeSlot'); }}
+                      className={`input ${touched.preferredTimeSlot && !form.preferredTimeSlot ? 'border-red-300' : ''}`}
+                    >
                       <option value="">Select time</option>
                       {selectedOfficer.availableSlots.map(s => (
                         <option key={s} value={s}>{s}</option>
                       ))}
                     </select>
+                    {touched.preferredTimeSlot && !form.preferredTimeSlot && <p className="text-xs text-red-500 mt-1">Time slot is required</p>}
                   </div>
                 </div>
               </>
             )}
 
             <div className="flex justify-end gap-3 pt-4 border-t border-secondary-200">
-              <button onClick={() => setShowModal(false)} className="btn-secondary">Cancel</button>
+              <button onClick={() => { setShowModal(false); setTouched({}); }} className="btn-secondary">Cancel</button>
               <button
                 onClick={handleBook}
-                disabled={submitting || !form.officerId || !form.purpose || !form.preferredDate || !form.preferredTimeSlot}
+                disabled={submitting}
                 className="btn-primary"
               >
                 {submitting ? 'Booking...' : 'Request Appointment'}

@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import AppService from '../services/appService';
+import { sendVerificationCodeEmail } from '../services/emailService';
+import { auth } from '../firebase/config';
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -10,11 +13,17 @@ export default function RegisterPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [enteredCode, setEnteredCode] = useState('');
+  const [showVerify, setShowVerify] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
+  const [codeSent, setCodeSent] = useState(false);
 
-  const update = (f: string, v: string) => setForm(prev => ({ ...prev, [f]: v }));
+  const update = (f: string, v: string) => { setForm(prev => ({ ...prev, [f]: v })); setTouched(prev => ({ ...prev, [f]: true })); };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setTouched({ name: true, email: true, phone: true, password: true, confirmPassword: true });
     if (!form.name || !form.email || !form.phone || !form.password) {
       setError('Please fill in all fields'); return;
     }
@@ -28,11 +37,25 @@ export default function RegisterPage() {
     setError('');
     try {
       await register({ email: form.email, password: form.password, name: form.name, phone: form.phone });
-      navigate('/');
+      const code = await AppService.generateVerificationCode(auth.currentUser!.uid);
+      sendVerificationCodeEmail(form.email, code, form.name);
+      setShowVerify(true);
+      setCodeSent(true);
     } catch (err: any) {
       setError(err.message || 'Registration failed');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    if (!auth.currentUser) return;
+    setVerifyError('');
+    const ok = await AppService.verifyEmailCode(auth.currentUser.uid, enteredCode);
+    if (ok) {
+      navigate('/');
+    } else {
+      setVerifyError('Invalid or expired verification code');
     }
   };
 
@@ -49,57 +72,130 @@ export default function RegisterPage() {
               <p className="text-sm text-secondary-500 mt-1">Register as a citizen to file and track grievances</p>
             </div>
 
-            {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>
+            {!showVerify ? (
+              <>
+                {error && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label className="label">Full Name</label>
+                    <input
+                      type="text"
+                      value={form.name}
+                      onChange={(e) => update('name', e.target.value)}
+                      className={`input ${touched.name && !form.name ? 'border-red-300' : ''}`}
+                      placeholder="Your full name"
+                      required
+                    />
+                    {touched.name && !form.name && <p className="text-xs text-red-500 mt-1">Name is required</p>}
+                  </div>
+                  <div>
+                    <label className="label">Email</label>
+                    <input
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => update('email', e.target.value)}
+                      className={`input ${touched.email && !form.email ? 'border-red-300' : ''}`}
+                      placeholder="you@example.com"
+                      required
+                    />
+                    {touched.email && !form.email && <p className="text-xs text-red-500 mt-1">Email is required</p>}
+                  </div>
+                  <div>
+                    <label className="label">Phone Number</label>
+                    <input
+                      type="tel"
+                      value={form.phone}
+                      onChange={(e) => update('phone', e.target.value)}
+                      className={`input ${touched.phone && !form.phone ? 'border-red-300' : ''}`}
+                      placeholder="10-digit mobile number"
+                      maxLength={10}
+                      required
+                    />
+                    {touched.phone && !form.phone && <p className="text-xs text-red-500 mt-1">Phone number is required</p>}
+                  </div>
+                  <div>
+                    <label className="label">Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={form.password}
+                        onChange={(e) => update('password', e.target.value)}
+                        className={`input pr-10 ${touched.password && !form.password ? 'border-red-300' : ''}`}
+                        placeholder="Min 6 characters"
+                        required
+                      />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary-400 hover:text-secondary-600">
+                        {showPassword ? (
+                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                        ) : (
+                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        )}
+                      </button>
+                    </div>
+                    {touched.password && !form.password && <p className="text-xs text-red-500 mt-1">Password is required</p>}
+                  </div>
+                  <div>
+                    <label className="label">Confirm Password</label>
+                    <div className="relative">
+                      <input
+                        type={showConfirm ? 'text' : 'password'}
+                        value={form.confirmPassword}
+                        onChange={(e) => update('confirmPassword', e.target.value)}
+                        className={`input pr-10 ${touched.confirmPassword && !form.confirmPassword ? 'border-red-300' : ''}`}
+                        placeholder="Re-enter password"
+                        required
+                      />
+                      <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary-400 hover:text-secondary-600">
+                        {showConfirm ? (
+                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                        ) : (
+                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        )}
+                      </button>
+                    </div>
+                    {touched.confirmPassword && !form.confirmPassword && <p className="text-xs text-red-500 mt-1">Please confirm your password</p>}
+                  </div>
+                  <button type="submit" disabled={loading} className="btn-primary w-full">
+                    {loading ? 'Creating account...' : 'Create Account'}
+                  </button>
+                </form>
+
+                <p className="mt-4 text-center text-sm text-secondary-500">
+                  Already have an account? <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">Sign in</Link>
+                </p>
+              </>
+            ) : (
+              <div className="text-center">
+                <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center mx-auto mb-4">
+                  <svg className="h-8 w-8 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                </div>
+                <h3 className="text-lg font-bold text-secondary-900 mb-2">Verify Your Email</h3>
+                <p className="text-sm text-secondary-500 mb-4">
+                  A verification code has been sent to <strong>{form.email}</strong>. 
+                  Please check your inbox and enter the code below. (Valid for 5 minutes)
+                </p>
+                <input
+                  type="text"
+                  value={enteredCode}
+                  onChange={(e) => setEnteredCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className={`input text-center text-2xl font-mono tracking-widest mb-3 ${verifyError ? 'border-red-300' : ''}`}
+                  placeholder="Enter code"
+                  maxLength={6}
+                />
+                {verifyError && <p className="text-xs text-red-500 mb-3">{verifyError}</p>}
+                <button onClick={handleVerifyCode} disabled={enteredCode.length !== 6} className="btn-primary w-full">
+                  Verify & Continue
+                </button>
+                {!codeSent && (
+                  <p className="text-xs text-amber-600 mt-3">
+                    Note: Configure EmailJS credentials in <code className="text-xs">src/services/emailService.ts</code> to enable email delivery. The code is logged to the console as a fallback.
+                  </p>
+                )}
+              </div>
             )}
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="label">Full Name</label>
-                <input type="text" value={form.name} onChange={(e) => update('name', e.target.value)} className="input" placeholder="Your full name" required />
-              </div>
-              <div>
-                <label className="label">Email</label>
-                <input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} className="input" placeholder="you@example.com" required />
-              </div>
-              <div>
-                <label className="label">Phone Number</label>
-                <input type="tel" value={form.phone} onChange={(e) => update('phone', e.target.value)} className="input" placeholder="10-digit mobile number" maxLength={10} required />
-              </div>
-              <div>
-                <label className="label">Password</label>
-                <div className="relative">
-                  <input type={showPassword ? 'text' : 'password'} value={form.password} onChange={(e) => update('password', e.target.value)} className="input pr-10" placeholder="Min 6 characters" required />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary-400 hover:text-secondary-600">
-                    {showPassword ? (
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
-                    ) : (
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                    )}
-                  </button>
-                </div>
-              </div>
-              <div>
-                <label className="label">Confirm Password</label>
-                <div className="relative">
-                  <input type={showConfirm ? 'text' : 'password'} value={form.confirmPassword} onChange={(e) => update('confirmPassword', e.target.value)} className="input pr-10" placeholder="Re-enter password" required />
-                  <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary-400 hover:text-secondary-600">
-                    {showConfirm ? (
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
-                    ) : (
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                    )}
-                  </button>
-                </div>
-              </div>
-              <button type="submit" disabled={loading} className="btn-primary w-full">
-                {loading ? 'Creating account...' : 'Create Account'}
-              </button>
-            </form>
-
-            <p className="mt-4 text-center text-sm text-secondary-500">
-              Already have an account? <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">Sign in</Link>
-            </p>
           </div>
         </div>
       </div>

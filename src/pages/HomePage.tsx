@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { onSnapshot, collection, query, where } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -32,6 +32,13 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(emptyStats);
   const [myGrievances, setMyGrievances] = useState<Grievance[]>([]);
+  const [grievanceTab, setGrievanceTab] = useState<'all' | 'resolved' | 'pending'>('all');
+
+  const filteredHomeGrievances = useMemo(() => {
+    if (grievanceTab === 'resolved') return myGrievances.filter(g => g.status === 'resolved' || g.status === 'closed');
+    if (grievanceTab === 'pending') return myGrievances.filter(g => g.status === 'submitted' || g.status === 'under_review');
+    return myGrievances;
+  }, [myGrievances, grievanceTab]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -124,13 +131,20 @@ export default function HomePage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((s) => (
-          <div key={s.label} className="card p-5 text-center">
-            <s.icon className={`h-8 w-8 mx-auto mb-2 ${s.color}`} />
-            <p className="text-2xl font-bold text-secondary-900">{s.value}</p>
-            <p className="text-sm text-secondary-500">{s.label}</p>
-          </div>
-        ))}
+        {stats.map((s) => {
+          let linkTo = '/track';
+          if (s.label === 'Active Officers') linkTo = '/appointments';
+          else if (s.label === 'Resolved') linkTo = '/track?filter=resolved';
+          else if (s.label === 'Pending') linkTo = '/track?filter=pending';
+          else linkTo = '/track?filter=all';
+          return (
+            <Link key={s.label} to={linkTo} className="card p-5 text-center block hover:shadow-lg transition-shadow">
+              <s.icon className={`h-8 w-8 mx-auto mb-2 ${s.color}`} />
+              <p className="text-2xl font-bold text-secondary-900">{s.value}</p>
+              <p className="text-sm text-secondary-500">{s.label}</p>
+            </Link>
+          );
+        })}
       </div>
 
       {/* Latest Announcements */}
@@ -162,18 +176,33 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* My Grievances */}
+      {/* My Grievances with tabs */}
       {myGrievances.length > 0 && (
         <div>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <h2 className="text-xl font-bold text-secondary-900">My Grievances</h2>
-            <Link to="/track" className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
-              Track a Grievance <ArrowRightIcon className="h-4 w-4" />
-            </Link>
+            <div className="flex gap-1 p-0.5 bg-secondary-100/80 rounded-lg">
+              {(['all', 'resolved', 'pending'] as const).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setGrievanceTab(tab)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                    grievanceTab === tab
+                      ? 'bg-white text-primary-700 shadow-sm'
+                      : 'text-secondary-500 hover:text-secondary-700'
+                  }`}
+                >
+                  {tab === 'all' ? 'All' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  <span className="ml-1 text-[10px] opacity-60">
+                    ({tab === 'all' ? myGrievances.length : tab === 'resolved' ? myGrievances.filter(g => g.status === 'resolved' || g.status === 'closed').length : myGrievances.filter(g => g.status === 'submitted' || g.status === 'under_review').length})
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
           <div className="space-y-3">
-            {myGrievances.slice(0, 5).map(g => (
-              <Link key={g.id} to="/track" className="card card-body block hover:shadow-md transition-shadow">
+            {filteredHomeGrievances.map(g => (
+              <Link key={g.id} to={`/track?trackingId=${g.trackingId}`} className="card card-body block hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1">

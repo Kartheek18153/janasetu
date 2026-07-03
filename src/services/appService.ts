@@ -11,7 +11,7 @@ import {
   sendEmailVerification,
 } from 'firebase/auth';
 import { auth, db } from '../firebase/config';
-import { doc, setDoc, getDoc, updateDoc, collection, addDoc, getDocs, query, where, orderBy, Timestamp, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, collection, addDoc, getDocs, query, where, orderBy, Timestamp, serverTimestamp, deleteField } from 'firebase/firestore';
 import {
   UserProfile, Grievance, Announcement, Appointment, Officer, Department, Notification,
   GrievanceCategory, GrievancePriority, TimeSlot,
@@ -346,6 +346,40 @@ export const AppService = {
     const credential = EmailAuthProvider.credential(user.email, currentPassword);
     await reauthenticateWithCredential(user, credential);
     await updatePassword(user, newPassword);
+  },
+
+  async generateVerificationCode(uid: string): Promise<string> {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    await updateDoc(doc(db, 'users', uid), {
+      verificationCode: code,
+      verificationCodeExpiresAt: expiresAt,
+    });
+    return code;
+  },
+
+  async verifyEmailCode(uid: string, code: string): Promise<boolean> {
+    const snap = await getDoc(doc(db, 'users', uid));
+    if (!snap.exists()) return false;
+    const data = snap.data();
+    if (!data.verificationCode || !data.verificationCodeExpiresAt) return false;
+    const expiresAt = data.verificationCodeExpiresAt?.toDate?.() || data.verificationCodeExpiresAt;
+    if (new Date() > new Date(expiresAt)) return false;
+    if (data.verificationCode !== code) return false;
+    await updateDoc(doc(db, 'users', uid), {
+      verificationCode: deleteField(),
+      verificationCodeExpiresAt: deleteField(),
+      isVerified: true,
+    });
+    return true;
+  },
+
+  async isEmailVerified(): Promise<boolean> {
+    const user = auth.currentUser;
+    if (!user) return false;
+    if (user.emailVerified) return true;
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    return snap.data()?.isVerified ?? false;
   },
 };
 
