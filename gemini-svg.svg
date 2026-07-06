@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 120" width="100%" height="100%">
+  <defs>
+    <!-- Saffron Gradient -->
+    <linearGradient id="saffronGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FF6600" />
+      <stop offset="100%" stop-color="#FF9933" />
+    </linearGradient>
+    <!-- Green Gradient -->
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#006600" />
+      <stop offset="100%" stop-color="#138808" />
+    </linearGradient>
+    <!-- Soft Glow Filter for the Center Node -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Left Side: Geometric Bridge & Chakra Icon -->
+  <g transform="translate(10, 10)">
+    <!-- Saffron Upper Arch -->
+    <path d="M 20 70 Q 65 25 110 70" fill="none" stroke="url(#saffronGrad)" stroke-width="5" stroke-linecap="round"/>
+    
+    <!-- White Middle Arch Area (Represented via negative space spacing, outlined cleanly) -->
+    <path d="M 20 77 Q 65 35 110 77" fill="none" stroke="#E2E8F0" stroke-width="2" stroke-dasharray="2,4"/>
+    
+    <!-- Green Lower Arch -->
+    <path d="M 20 84 Q 65 45 110 84" fill="none" stroke="url(#greenGrad)" stroke-width="5" stroke-linecap="round"/>
+    
+    <!-- Center Node: Ashoka Chakra / Citizen Node -->
+    <circle cx="65" cy="35" r="7" fill="#0A2540" filter="url(#glow)"/>
+    <circle cx="65" cy="35" r="4" fill="#FFFFFF"/>
+    <circle cx="65" cy="35" r="1.5" fill="#0A2540"/>
+    
+    <!-- Foundation Pillars (Minimalist Line Work) -->
+    <line x1="20" y1="70" x2="20" y2="90" stroke="#94A3B8" stroke-width="3" stroke-linecap="round"/>
+    <line x1="110" y1="70" x2="110" y2="90" stroke="#94A3B8" stroke-width="3" stroke-linecap="round"/>
+  </g>
+
+  <!-- Right Side: Authority Typography -->
+  <g transform="translate(145, 0)">
+    <!-- Hindi Typography (JanaSetu) -->
+    <text x="0" y="48" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="600" fill="#FF9933" letter-spacing="1">जन<tspan fill="#138808">सेतु</tspan></text>
+    
+    <!-- English Corporate Brand Name -->
+    <text x="0" y="82" font-family="system-ui, -apple-system, sans-serif" font-size="34" font-weight="800" fill="#0A2540" letter-spacing="0.5">Jana<tspan font-weight="400" fill="#64748B">Setu</tspan></text>
+    
+    <!-- Small Official Tagline Splitter Line -->
+    <line x1="0" y1="94" x2="280" y2="94" stroke="#CBD5E1" stroke-width="1" />
+    
+    <!-- Tagline Subtext -->
+    <text x="0" y="108" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="500" fill="#64748B" letter-spacing="1.2">BRIDGING CITIZENS &amp; GOVERNANCE</text>
+  </g>
+</svg>

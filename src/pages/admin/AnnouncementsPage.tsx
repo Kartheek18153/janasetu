@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from '../../i18n';
 import AppService from '../../services/appService';
 import Badge from '../../components/ui/Badge';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
@@ -15,6 +16,7 @@ const defaultForm = {
 };
 
 export default function AdminAnnouncementsPage() {
+  const { t } = useTranslation();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -63,12 +65,12 @@ export default function AdminAnnouncementsPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-secondary-900">Announcements</h1>
+          <h1 className="text-2xl font-bold text-secondary-900">{t('admin.announcements.title')}</h1>
           <p className="text-secondary-500 mt-1">Publish and manage public announcements</p>
         </div>
         <button onClick={() => setShowModal(true)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-admin-600 to-admin-700 text-white text-sm font-semibold hover:shadow-lg hover:shadow-admin-200/50 transition-all active:scale-[0.97]">
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-          New Announcement
+          {t('admin.announcements.create')}
         </button>
       </div>
 
@@ -103,7 +105,7 @@ export default function AdminAnnouncementsPage() {
         </div>
       )}
 
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="New Announcement" size="lg">
+      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={t('admin.announcements.create')} size="lg">
         <div className="space-y-4">
           <div>
             <label className="label">Title</label>

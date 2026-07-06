@@ -1,3 +1,4 @@
+import { useTranslation } from '../../i18n';
 import { ReactNode } from 'react';
 
 interface EmptyStateProps {

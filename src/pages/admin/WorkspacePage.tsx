@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from '../../i18n';
 import AppService from '../../services/appService';
 import Badge from '../../components/ui/Badge';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
@@ -9,6 +10,7 @@ import {
 import { Grievance, Appointment } from '../../types';
 
 export default function AdminWorkspacePage() {
+  const { t } = useTranslation();
   const [pendingGrievances, setPendingGrievances] = useState<Grievance[]>([]);
   const [todayAppointments, setTodayAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +38,7 @@ export default function AdminWorkspacePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-secondary-900">Workspace</h1>
+        <h1 className="text-2xl font-bold text-secondary-900">{t('admin.workspace.title')}</h1>
         <p className="text-secondary-500 mt-1">Your daily tasks and pending items overview</p>
       </div>
 

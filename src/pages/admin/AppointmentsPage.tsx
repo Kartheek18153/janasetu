@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from '../../i18n';
 import AppService from '../../services/appService';
 import Badge from '../../components/ui/Badge';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
@@ -16,6 +17,7 @@ const statusTabs = [
 ];
 
 export default function AdminAppointmentsPage() {
+  const { t } = useTranslation();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Appointment | null>(null);
@@ -43,7 +45,7 @@ export default function AdminAppointmentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-secondary-900">Appointments</h1>
+        <h1 className="text-2xl font-bold text-secondary-900">{t('admin.appointments.title')}</h1>
         <p className="text-secondary-500 mt-1">Manage citizen appointment requests</p>
       </div>
 

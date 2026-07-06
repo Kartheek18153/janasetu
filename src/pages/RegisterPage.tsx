@@ -2,13 +2,16 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AppService from '../services/appService';
-import { sendVerificationCodeEmail } from '../services/emailService';
+import { sendVerificationCodeEmail, sendVerificationCodeSMS } from '../services/emailService';
 import { auth } from '../firebase/config';
 import { isDisposableEmail } from '../utils/emailValidation';
+import Captcha from '../components/ui/Captcha';
+import { useTranslation } from '../i18n';
 
 export default function RegisterPage() {
   const { register, refreshProfile } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -22,6 +25,10 @@ export default function RegisterPage() {
   const [codeSendError, setCodeSendError] = useState('');
   const [fallbackCode, setFallbackCode] = useState('');
   const [resending, setResending] = useState(false);
+  const [sendingSms, setSendingSms] = useState(false);
+  const [smsSent, setSmsSent] = useState(false);
+  const [showCode, setShowCode] = useState(false);
+  const [captchaValid, setCaptchaValid] = useState(false);
 
   const update = (f: string, v: string) => { setForm(prev => ({ ...prev, [f]: v })); setTouched(prev => ({ ...prev, [f]: true })); };
 
@@ -98,8 +105,8 @@ export default function RegisterPage() {
               <div className="h-12 w-12 rounded-xl overflow-hidden mx-auto mb-4 shadow-lg shadow-primary-300/50 ring-4 ring-primary-100">
                 <img src="/logo.png" alt="JanaSetu" className="h-full w-full object-cover" />
               </div>
-              <h2 className="text-2xl font-bold text-secondary-900">Create Account</h2>
-              <p className="text-sm text-secondary-500 mt-1">Register as a citizen to file and track grievances</p>
+              <h2 className="text-2xl font-bold text-secondary-900">{t('register.title')}</h2>
+              <p className="text-sm text-secondary-500 mt-1">{t('register.subtitle')}</p>
             </div>
 
             {!showVerify ? (
@@ -110,51 +117,51 @@ export default function RegisterPage() {
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label className="label">Full Name</label>
+                    <label className="label">{t('register.nameLabel')}</label>
                     <input
                       type="text"
                       value={form.name}
                       onChange={(e) => update('name', e.target.value)}
                       className={`input ${touched.name && !form.name ? 'border-red-300' : ''}`}
-                      placeholder="Your full name"
+                      placeholder={t('register.namePlaceholder')}
                       required
                     />
                     {touched.name && !form.name && <p className="text-xs text-red-500 mt-1">Name is required</p>}
                   </div>
                   <div>
-                    <label className="label">Email</label>
+                    <label className="label">{t('register.emailLabel')}</label>
                     <input
                       type="email"
                       value={form.email}
                       onChange={(e) => update('email', e.target.value)}
                       className={`input ${touched.email && !form.email ? 'border-red-300' : ''}`}
-                      placeholder="you@example.com"
+                      placeholder={t('register.emailPlaceholder')}
                       required
                     />
                     {touched.email && !form.email && <p className="text-xs text-red-500 mt-1">Email is required</p>}
                   </div>
                   <div>
-                    <label className="label">Phone Number</label>
+                    <label className="label">{t('register.phoneLabel')}</label>
                     <input
                       type="tel"
                       value={form.phone}
                       onChange={(e) => update('phone', e.target.value)}
                       className={`input ${touched.phone && !form.phone ? 'border-red-300' : ''}`}
-                      placeholder="10-digit mobile number"
+                      placeholder={t('register.phonePlaceholder')}
                       maxLength={10}
                       required
                     />
                     {touched.phone && !form.phone && <p className="text-xs text-red-500 mt-1">Phone number is required</p>}
                   </div>
                   <div>
-                    <label className="label">Password</label>
+                    <label className="label">{t('register.passwordLabel')}</label>
                     <div className="relative">
                       <input
                         type={showPassword ? 'text' : 'password'}
                         value={form.password}
                         onChange={(e) => update('password', e.target.value)}
                         className={`input pr-10 ${touched.password && !form.password ? 'border-red-300' : ''}`}
-                        placeholder="Min 6 characters"
+                        placeholder={t('register.passwordPlaceholder')}
                         required
                       />
                       <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary-400 hover:text-secondary-600">
@@ -168,14 +175,14 @@ export default function RegisterPage() {
                     {touched.password && !form.password && <p className="text-xs text-red-500 mt-1">Password is required</p>}
                   </div>
                   <div>
-                    <label className="label">Confirm Password</label>
+                    <label className="label">{t('register.confirmPasswordLabel')}</label>
                     <div className="relative">
                       <input
                         type={showConfirm ? 'text' : 'password'}
                         value={form.confirmPassword}
                         onChange={(e) => update('confirmPassword', e.target.value)}
                         className={`input pr-10 ${touched.confirmPassword && !form.confirmPassword ? 'border-red-300' : ''}`}
-                        placeholder="Re-enter password"
+                        placeholder={t('register.confirmPasswordPlaceholder')}
                         required
                       />
                       <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary-400 hover:text-secondary-600">
@@ -188,13 +195,14 @@ export default function RegisterPage() {
                     </div>
                     {touched.confirmPassword && !form.confirmPassword && <p className="text-xs text-red-500 mt-1">Please confirm your password</p>}
                   </div>
-                  <button type="submit" disabled={loading} className="btn-primary w-full">
-                    {loading ? 'Creating account...' : 'Create Account'}
+                  <Captcha onValidate={setCaptchaValid} />
+                  <button type="submit" disabled={loading || !captchaValid} className="btn-primary w-full">
+                    {loading ? t('register.registering') : t('register.submit')}
                   </button>
                 </form>
 
                 <p className="mt-4 text-center text-sm text-secondary-500">
-                  Already have an account? <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">Sign in</Link>
+                  {t('register.haveAccount')} <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">{t('register.signIn')}</Link>
                 </p>
               </>
             ) : (
@@ -202,14 +210,31 @@ export default function RegisterPage() {
                 <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center mx-auto mb-4">
                   <svg className="h-8 w-8 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                 </div>
-                <h3 className="text-lg font-bold text-secondary-900 mb-2">Verify Your Email</h3>
-                <p className="text-sm text-secondary-500 mb-4">
-                  A verification code has been sent to <strong>{form.email}</strong>. 
-                  Please check your inbox and enter the code below. (Valid for 5 minutes)
+                <h3 className="text-lg font-bold text-secondary-900 mb-2">{t('register.verifyTitle')}</h3>
+                <p className="text-sm text-secondary-500 mb-3">
+                  {t('register.verifyDesc')} <strong>{form.email}</strong>.
                 </p>
+                {form.phone && (
+                  <p className="text-xs text-secondary-400 mb-3">
+                    Also sent via SMS to <strong>{form.phone}</strong>
+                    {smsSent && <span className="text-emerald-600 ml-1">✓</span>}
+                  </p>
+                )}
                 {codeSendError && (
                   <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
                     {codeSendError}
+                  </div>
+                )}
+                {!showCode ? (
+                  <div className="mb-3">
+                    <p className="text-xs text-secondary-400 mb-2">
+                      Can't find the code? <button onClick={() => setShowCode(true)} className="text-primary-600 hover:text-primary-700 font-medium underline">Show code</button>
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mb-3 p-3 bg-primary-50 border border-primary-200 rounded-lg">
+                    <p className="text-xs text-primary-600 font-medium mb-1">Your verification code</p>
+                    <p className="text-3xl font-mono font-bold text-primary-700 tracking-[0.25em]">{fallbackCode}</p>
                   </div>
                 )}
                 <input
@@ -217,34 +242,63 @@ export default function RegisterPage() {
                   value={enteredCode}
                   onChange={(e) => setEnteredCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   className={`input text-center text-2xl font-mono tracking-widest mb-3 ${verifyError ? 'border-red-300' : ''}`}
-                  placeholder="Enter code"
+                  placeholder={t('register.verifyCodePlaceholder')}
                   maxLength={6}
                 />
                 {verifyError && <p className="text-xs text-red-500 mb-3">{verifyError}</p>}
-                <button onClick={handleVerifyCode} disabled={enteredCode.length !== 6} className="btn-primary w-full">
-                  Verify & Continue
+                <button onClick={handleVerifyCode} disabled={enteredCode.length !== 6} className="btn-primary w-full mb-2">
+                  {t('register.verifySubmit')}
                 </button>
-                <button
-                  onClick={async () => {
-                    if (!auth.currentUser) return;
-                    setResending(true);
-                    setCodeSendError('');
-                    try {
-                      const code = await AppService.generateVerificationCode(auth.currentUser.uid);
-                      setFallbackCode(code);
-                      await sendVerificationCodeEmail(form.email, code, form.name);
-                      setCodeSent(true);
-                    } catch (emailErr: any) {
-                      setCodeSendError(emailErr.message || 'Email delivery failed. Your verification code is shown below.');
-                    } finally {
-                      setResending(false);
-                    }
-                  }}
-                  disabled={resending}
-                  className="mt-2 text-sm text-primary-600 hover:text-primary-700 font-medium disabled:opacity-50"
-                >
-                  {resending ? 'Resending...' : 'Resend Code'}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      if (!auth.currentUser) return;
+                      setResending(true);
+                      setCodeSendError('');
+                      try {
+                        const code = await AppService.generateVerificationCode(auth.currentUser.uid);
+                        setFallbackCode(code);
+                        setShowCode(true);
+                        await sendVerificationCodeEmail(form.email, code, form.name);
+                        setCodeSent(true);
+                      } catch (emailErr: any) {
+                        setCodeSendError(emailErr.message || 'Email delivery failed.');
+                      } finally {
+                        setResending(false);
+                      }
+                    }}
+                    disabled={resending}
+                    className="flex-1 text-sm text-primary-600 hover:text-primary-700 font-medium disabled:opacity-50 py-2 rounded-lg border border-primary-200 hover:bg-primary-50 transition-colors"
+                  >
+                    {resending ? 'Resending...' : t('login.resendCode')}
+                  </button>
+                  {form.phone && (
+                    <button
+                      onClick={async () => {
+                        if (!auth.currentUser || !form.phone) return;
+                        setSendingSms(true);
+                        setSmsSent(false);
+                        try {
+                          const code = await AppService.generateVerificationCode(auth.currentUser.uid);
+                          setFallbackCode(code);
+                          setShowCode(true);
+                          const ok = await sendVerificationCodeSMS(form.phone, code, form.name);
+                          if (ok) {
+                            setSmsSent(true);
+                          } else {
+                            setCodeSendError('SMS delivery unavailable. Your code is shown above.');
+                          }
+                        } finally {
+                          setSendingSms(false);
+                        }
+                      }}
+                      disabled={sendingSms}
+                      className="flex-1 text-sm text-primary-600 hover:text-primary-700 font-medium disabled:opacity-50 py-2 rounded-lg border border-primary-200 hover:bg-primary-50 transition-colors"
+                    >
+                      {sendingSms ? 'Sending...' : smsSent ? 'Sent ✓' : 'Send as SMS'}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>

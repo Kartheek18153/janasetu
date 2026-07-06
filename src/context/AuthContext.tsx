@@ -11,6 +11,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isCitizen: boolean;
   isVerified: boolean;
+  isPhoneVerified: boolean;
   login: (email: string, password: string) => Promise<UserProfile>;
   register: (data: { email: string; password: string; name: string; phone: string }) => Promise<void>;
   loginWithGoogle: () => Promise<UserProfile>;
@@ -82,8 +83,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (data: { email: string; password: string; name: string; phone: string }) => {
-    const u = await AppService.register(data);
-    setUser(u);
+    pendingLoginRef.current = true;
+    try {
+      const u = await AppService.register(data);
+      setUser(u);
+    } finally {
+      pendingLoginRef.current = false;
+    }
   };
 
   const logout = async () => {
@@ -99,10 +105,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value: AuthContextType = {
     user,
     loading,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user && (user.role === 'admin' || user.isVerified),
     isAdmin: user?.role === 'admin',
     isCitizen: user?.role === 'citizen',
     isVerified: user?.isVerified ?? false,
+    isPhoneVerified: user?.isPhoneVerified ?? false,
     login,
     register,
     loginWithGoogle,

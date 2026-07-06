@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from '../../i18n';
 import { onSnapshot, collection } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import AppService from '../../services/appService';
@@ -16,6 +17,7 @@ interface DashboardStats {
 }
 
 export default function AdminDashboard() {
+  const { t } = useTranslation();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -43,9 +45,9 @@ export default function AdminDashboard() {
   if (loading) return <LoadingSpinner size="lg" className="py-20" />;
 
   const cards = [
-    { label: 'Total Grievances', value: stats?.total || 0, icon: DocumentTextIcon, color: 'bg-admin-500', filter: 'all', hoverColor: 'group-hover:shadow-admin-200/50' },
+    { label: t('admin.dashboard.totalGrievances'), value: stats?.total || 0, icon: DocumentTextIcon, color: 'bg-admin-500', filter: 'all', hoverColor: 'group-hover:shadow-admin-200/50' },
     { label: 'In Progress', value: stats?.inProgress || 0, icon: ClockIcon, color: 'bg-admin-orange', filter: 'in_progress', hoverColor: 'group-hover:shadow-orange-200/50' },
-    { label: 'Resolved', value: stats?.resolved || 0, icon: CheckCircleIcon, color: 'bg-admin-500', filter: 'resolved', hoverColor: 'group-hover:shadow-admin-200/50' },
+    { label: t('admin.dashboard.resolvedGrievances'), value: stats?.resolved || 0, icon: CheckCircleIcon, color: 'bg-admin-500', filter: 'resolved', hoverColor: 'group-hover:shadow-admin-200/50' },
     { label: 'Rejected', value: stats?.rejected || 0, icon: XCircleIcon, color: 'bg-red-500', filter: 'rejected', hoverColor: 'group-hover:shadow-red-200/50' },
   ];
 
@@ -59,7 +61,7 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-secondary-900">Admin Dashboard</h1>
+        <h1 className="text-2xl font-bold text-secondary-900">{t('admin.dashboard.title')}</h1>
         <p className="text-secondary-500 mt-1">Overview of the grievance management system</p>
       </div>
 
@@ -114,7 +116,7 @@ export default function AdminDashboard() {
 
         <div className="card transition-all duration-300 hover:shadow-xl">
           <div className="card-header">
-            <h2 className="font-semibold text-secondary-900">Quick Actions</h2>
+            <h2 className="font-semibold text-secondary-900">{t('admin.dashboard.quickActions')}</h2>
           </div>
           <div className="card-body space-y-2">
             {quickActions.map(action => (

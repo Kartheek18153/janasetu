@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from '../../i18n';
 import { onSnapshot, collection, query, orderBy } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { grievanceFromDoc } from '../../services/appService';
@@ -22,6 +23,7 @@ const statusFilters: { label: string; value: GrievanceStatus | 'all'; color: str
 ];
 
 export default function AdminGrievancesPage() {
+  const { t } = useTranslation();
   const [grievances, setGrievances] = useState<Grievance[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchParams] = useSearchParams();
@@ -83,7 +85,7 @@ export default function AdminGrievancesPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-secondary-900">Grievances</h1>
+          <h1 className="text-2xl font-bold text-secondary-900">{t('admin.grievances.title')}</h1>
           <p className="text-secondary-500 mt-1">Manage and track all citizen grievances</p>
         </div>
       </div>
@@ -178,14 +180,14 @@ export default function AdminGrievancesPage() {
 
             <div className="flex justify-end gap-3 pt-4 border-t border-secondary-200">
               <button onClick={() => { setSelected(selected); setStatusModal(true); }} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-admin-600 to-admin-700 text-white text-sm font-semibold hover:shadow-lg hover:shadow-admin-200/50 transition-all active:scale-[0.97]">
-                Update Status
+                {t('admin.grievances.updateStatus')}
               </button>
             </div>
           </div>
         )}
       </Modal>
 
-      <Modal isOpen={statusModal} onClose={() => setStatusModal(false)} title="Update Status" size="md">
+      <Modal isOpen={statusModal} onClose={() => setStatusModal(false)} title={t('admin.grievances.updateStatus')} size="md">
         <div className="space-y-4">
           <div>
             <label className="label">New Status</label>

@@ -1,3 +1,4 @@
+import { useTranslation } from '../../i18n';
 import { GrievanceStatus, AppointmentStatus, AnnouncementPriority } from '../../types';
 
 const statusStyles: Record<string, string> = {
@@ -31,35 +32,35 @@ const statusStyles: Record<string, string> = {
   circular: 'bg-purple-100 text-purple-800',
 };
 
-const statusLabels: Record<string, string> = {
-  submitted: 'Submitted',
-  under_review: 'Under Review',
-  assigned: 'Assigned',
-  in_progress: 'In Progress',
-  pending_citizen: 'Pending Citizen',
-  resolved: 'Resolved',
-  closed: 'Closed',
-  rejected: 'Rejected',
+const statusLabelKeys: Record<string, string> = {
+  submitted: 'badge.status.submitted',
+  under_review: 'badge.status.under_review',
+  assigned: 'badge.status.assigned',
+  in_progress: 'badge.status.in_progress',
+  pending_citizen: 'badge.status.pending_citizen',
+  resolved: 'badge.status.resolved',
+  closed: 'badge.status.closed',
+  rejected: 'badge.status.rejected',
 
-  requested: 'Requested',
-  confirmed: 'Confirmed',
-  rescheduled: 'Rescheduled',
-  completed: 'Completed',
-  cancelled: 'Cancelled',
-  no_show: 'No Show',
+  requested: 'badge.status.requested',
+  confirmed: 'badge.status.confirmed',
+  rescheduled: 'badge.status.rescheduled',
+  completed: 'badge.status.completed',
+  cancelled: 'badge.status.cancelled',
+  no_show: 'badge.status.no_show',
 
-  low: 'Low',
-  medium: 'Medium',
-  high: 'High',
-  urgent: 'Urgent',
-  critical: 'Critical',
+  low: 'badge.priority.low',
+  medium: 'badge.priority.medium',
+  high: 'badge.priority.high',
+  urgent: 'badge.priority.urgent',
+  critical: 'badge.priority.critical',
 
-  general: 'General',
-  scheme: 'Scheme',
-  holiday: 'Holiday',
-  emergency: 'Emergency',
-  notice: 'Notice',
-  circular: 'Circular',
+  general: 'badge.type.general',
+  scheme: 'badge.type.scheme',
+  holiday: 'badge.type.holiday',
+  emergency: 'badge.type.emergency',
+  notice: 'badge.type.notice',
+  circular: 'badge.type.circular',
 };
 
 export default function Badge({
@@ -71,6 +72,7 @@ export default function Badge({
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }) {
+  const { t } = useTranslation();
   const sizeStyles = {
     sm: 'px-2 py-0.5 text-xs',
     md: 'px-2.5 py-1 text-sm',
@@ -81,7 +83,7 @@ export default function Badge({
     <span
       className={`inline-flex items-center font-medium rounded-full ${statusStyles[status] || 'bg-gray-100 text-gray-800'} ${sizeStyles[size]} ${className}`}
     >
-      {statusLabels[status] || status}
+      {t(statusLabelKeys[status] || status)}
     </span>
   );
 }

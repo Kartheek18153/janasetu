@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from '../i18n';
 import { onSnapshot, collection, query, where } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
@@ -8,6 +9,7 @@ import Badge from '../components/ui/Badge';
 import { Grievance } from '../types';
 
 export default function TrackGrievancePage() {
+  const { t } = useTranslation();
   const { user, isAuthenticated } = useAuth();
   const [searchParams] = useSearchParams();
   const filterParam = searchParams.get('filter');
@@ -32,15 +34,15 @@ export default function TrackGrievancePage() {
   }, [myGrievances, filterParam]);
 
   const sectionTitle =
-    filterParam === 'resolved' ? 'Resolved Grievances' :
-    filterParam === 'pending' ? 'Pending Grievances' :
-    'My Grievances';
+    filterParam === 'resolved' ? t('track.resolvedSection') :
+    filterParam === 'pending' ? t('track.pendingSection') :
+    t('track.myGrievances');
 
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-secondary-900">Track Grievance</h1>
-        <p className="mt-2 text-secondary-500">Enter your tracking ID to check the current status of your complaint</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-secondary-900">{t('track.title')}</h1>
+        <p className="mt-2 text-secondary-500">{t('track.subtitle')}</p>
       </div>
 
       <TrackGrievance initialTrackingId={selectedTrackingId} />

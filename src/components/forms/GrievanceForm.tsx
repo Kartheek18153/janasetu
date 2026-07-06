@@ -1,19 +1,20 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from '../../i18n';
 import AppService from '../../services/appService';
 
 
 const categories = [
-  { value: 'water_supply', label: 'Water Supply', icon: 'Water' },
-  { value: 'electricity', label: 'Electricity', icon: 'Power' },
-  { value: 'roads', label: 'Roads & Infrastructure', icon: 'Road' },
-  { value: 'sanitation', label: 'Sanitation', icon: 'Waste' },
-  { value: 'healthcare', label: 'Healthcare', icon: 'Health' },
-  { value: 'education', label: 'Education', icon: 'School' },
-  { value: 'revenue', label: 'Revenue/Land Records', icon: 'Revenue' },
-  { value: 'public_distribution', label: 'Public Distribution', icon: 'Supply' },
-  { value: 'social_welfare', label: 'Social Welfare', icon: 'Welfare' },
-  { value: 'other', label: 'Other', icon: 'Other' },
+  { value: 'water_supply', labelKey: 'fileGrievance.categories.water_supply', icon: 'Water' },
+  { value: 'electricity', labelKey: 'fileGrievance.categories.electricity', icon: 'Power' },
+  { value: 'roads', labelKey: 'fileGrievance.categories.roads', icon: 'Road' },
+  { value: 'sanitation', labelKey: 'fileGrievance.categories.sanitation', icon: 'Waste' },
+  { value: 'healthcare', labelKey: 'fileGrievance.categories.healthcare', icon: 'Health' },
+  { value: 'education', labelKey: 'fileGrievance.categories.education', icon: 'School' },
+  { value: 'revenue', labelKey: 'fileGrievance.categories.revenue', icon: 'Revenue' },
+  { value: 'public_distribution', labelKey: 'fileGrievance.categories.public_distribution', icon: 'Supply' },
+  { value: 'social_welfare', labelKey: 'fileGrievance.categories.social_welfare', icon: 'Welfare' },
+  { value: 'other', labelKey: 'fileGrievance.categories.other', icon: 'Other' },
 ];
 
 const departments = [
@@ -23,10 +24,10 @@ const departments = [
 ];
 
 const priorities = [
-  { value: 'low', label: 'Low', desc: 'Non-urgent, can be scheduled' },
-  { value: 'medium', label: 'Medium', desc: 'Needs attention soon' },
-  { value: 'high', label: 'High', desc: 'Requires prompt action' },
-  { value: 'urgent', label: 'Urgent', desc: 'Immediate attention needed' },
+  { value: 'low', labelKey: 'badge.priority.low', descKey: 'Non-urgent, can be scheduled' },
+  { value: 'medium', labelKey: 'badge.priority.medium', descKey: 'Needs attention soon' },
+  { value: 'high', labelKey: 'badge.priority.high', descKey: 'Requires prompt action' },
+  { value: 'urgent', labelKey: 'badge.priority.urgent', descKey: 'Immediate attention needed' },
 ];
 
 interface GrievanceFormProps {
@@ -34,6 +35,7 @@ interface GrievanceFormProps {
 }
 
 export default function GrievanceForm({ onSuccess }: GrievanceFormProps) {
+  const { t } = useTranslation();
   const { user, isAuthenticated } = useAuth();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
@@ -72,15 +74,15 @@ export default function GrievanceForm({ onSuccess }: GrievanceFormProps) {
   const handleSubmit = async () => {
     touchFields('title', 'description', 'address', 'city', 'district', 'state', 'pincode', 'category', 'department', 'priority');
     if (!isAuthenticated || !user) {
-      setError('Please sign in to file a grievance');
+      setError(t('fileGrievance.auth.required'));
       return;
     }
     if (!user.uid || !user.name || !user.email) {
-      setError('User profile is incomplete. Please update your profile.');
+      setError(t('common.error'));
       return;
     }
     if (!form.location.address.trim() || !form.location.city.trim() || !form.location.district.trim() || !form.location.state.trim() || form.location.pincode.trim().length !== 6) {
-      setError('Please provide complete address details (address, city, district, state) with a valid 6-digit pincode.');
+      setError(t('common.error'));
       return;
     }
     setSubmitting(true);
@@ -100,7 +102,7 @@ export default function GrievanceForm({ onSuccess }: GrievanceFormProps) {
       });
       onSuccess(result.trackingId);
     } catch (err: any) {
-      setError(err.message || 'Failed to submit grievance');
+      setError(err.message || t('common.error'));
     } finally {
       setSubmitting(false);
     }
@@ -128,7 +130,7 @@ export default function GrievanceForm({ onSuccess }: GrievanceFormProps) {
             <span className={`ml-2.5 text-sm font-medium transition-colors ${
               step >= s ? 'text-primary-700' : 'text-secondary-400'
             }`}>
-              {s === 1 ? 'Category & Priority' : s === 2 ? 'Details' : 'Review & Submit'}
+              {s === 1 ? t('fileGrievance.form.category') : s === 2 ? 'Details' : 'Review & Submit'}
             </span>
             {s < 3 && (
               <div className={`w-16 h-0.5 mx-3 rounded-full transition-colors duration-300 ${step > s ? 'bg-primary-500' : 'bg-secondary-200'}`} />
@@ -164,7 +166,7 @@ export default function GrievanceForm({ onSuccess }: GrievanceFormProps) {
                       : 'border-secondary-200 hover:border-secondary-300 bg-white'
                   } ${touched.category && !form.category ? 'border-red-300' : ''}`}
                 >
-                  <p className="text-sm font-semibold text-secondary-900">{cat.label}</p>
+                  <p className="text-sm font-semibold text-secondary-900">{t(cat.labelKey)}</p>
                 </button>
               ))}
             </div>
@@ -198,8 +200,8 @@ export default function GrievanceForm({ onSuccess }: GrievanceFormProps) {
                       : 'border-secondary-200 hover:border-secondary-300 bg-white'
                   } ${touched.priority && !form.priority ? 'border-red-300' : ''}`}
                 >
-                  <p className="text-sm font-semibold text-secondary-900 capitalize">{p.label}</p>
-                  <p className="text-[11px] text-secondary-400 mt-0.5">{p.desc}</p>
+                  <p className="text-sm font-semibold text-secondary-900 capitalize">{t(p.labelKey)}</p>
+                  <p className="text-[11px] text-secondary-400 mt-0.5">{p.descKey}</p>
                 </button>
               ))}
             </div>
@@ -336,11 +338,11 @@ export default function GrievanceForm({ onSuccess }: GrievanceFormProps) {
 
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="p-3 bg-white rounded-lg border border-secondary-100">
-                <p className="text-xs text-secondary-400 font-medium uppercase tracking-wide">Category</p>
-                <p className="font-semibold text-secondary-900 mt-1">{categories.find(c => c.value === form.category)?.label}</p>
+                <p className="text-xs text-secondary-400 font-medium uppercase tracking-wide">{t('fileGrievance.form.category')}</p>
+                <p className="font-semibold text-secondary-900 mt-1">{t(categories.find(c => c.value === form.category)?.labelKey || '') || form.category}</p>
               </div>
               <div className="p-3 bg-white rounded-lg border border-secondary-100">
-                <p className="text-xs text-secondary-400 font-medium uppercase tracking-wide">Department</p>
+                <p className="text-xs text-secondary-400 font-medium uppercase tracking-wide">{t('appointments.form.department')}</p>
                 <p className="font-semibold text-secondary-900 mt-1">{form.department}</p>
               </div>
               <div className="p-3 bg-white rounded-lg border border-secondary-100">
@@ -349,7 +351,7 @@ export default function GrievanceForm({ onSuccess }: GrievanceFormProps) {
               </div>
               {form.location.address && (
                 <div className="p-3 bg-white rounded-lg border border-secondary-100 col-span-2">
-                  <p className="text-xs text-secondary-400 font-medium uppercase tracking-wide">Location</p>
+                  <p className="text-xs text-secondary-400 font-medium uppercase tracking-wide">{t('fileGrievance.form.location')}</p>
                   <p className="font-semibold text-secondary-900 mt-1">{form.location.address}</p>
                   <div className="text-xs text-secondary-500 mt-1 space-y-0.5">
                     {form.location.landmark && <p>Landmark: {form.location.landmark}</p>}
@@ -378,7 +380,7 @@ export default function GrievanceForm({ onSuccess }: GrievanceFormProps) {
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                   Submitting...
                 </span>
-              ) : 'Submit Grievance'}
+              ) : t('fileGrievance.form.submit')}
             </button>
           </div>
         </div>

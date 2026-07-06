@@ -9,6 +9,10 @@ import FileGrievancePage from './pages/FileGrievancePage';
 import TrackGrievancePage from './pages/TrackGrievancePage';
 import AnnouncementsPage from './pages/AnnouncementsPage';
 import AppointmentsPage from './pages/AppointmentsPage';
+import SchemesPage from './pages/SchemesPage';
+import SchemeDetailPage from './pages/SchemeDetailPage';
+import MyApplicationsPage from './pages/MyApplicationsPage';
+import DocumentsPage from './pages/DocumentsPage';
 import AccountPage from './pages/AccountPage';
 import NotFoundPage from './pages/NotFoundPage';
 import AdminDashboard from './pages/admin/DashboardPage';
@@ -52,6 +56,10 @@ function AppRoutes() {
           <ProtectedRoute><AppointmentsPage /></ProtectedRoute>
         } />
         <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+        <Route path="/schemes" element={<SchemesPage />} />
+        <Route path="/schemes/:id" element={<SchemeDetailPage />} />
+        <Route path="/my-applications" element={<MyApplicationsPage />} />
+        <Route path="/documents" element={<DocumentsPage />} />
 
         {/* Admin Routes */}
         <Route path="/admin" element={

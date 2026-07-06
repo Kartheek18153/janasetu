@@ -11,6 +11,12 @@ export interface User {
   lastLoginAt: Date;
 }
 
+export type NationalityCategory = 'citizen' | 'nri' | 'other';
+
+export type NotificationChannel = 'email' | 'sms' | 'both';
+
+export type SupportedLanguage = 'en' | 'hi' | 'gu' | 'mr' | 'ta' | 'te' | 'bn';
+
 export interface UserProfile {
   uid: string;
   email: string;
@@ -22,6 +28,20 @@ export interface UserProfile {
   createdAt: Date;
   updatedAt: Date;
   isVerified: boolean;
+  isPhoneVerified?: boolean;
+  registrationId?: string;
+  gender?: string;
+  nationality?: NationalityCategory;
+  address?: string;
+  city?: string;
+  district?: string;
+  state?: string;
+  pincode?: string;
+  language?: SupportedLanguage;
+  notificationChannel?: NotificationChannel;
+  grievanceUpdates?: boolean;
+  appointmentReminders?: boolean;
+  announcementAlerts?: boolean;
 }
 
 export interface Grievance {
@@ -240,4 +260,61 @@ export interface PaginatedResponse<T> {
   page: number;
   limit: number;
   totalPages: number;
+}
+
+export type SocialCategory = 'general' | 'sc' | 'st' | 'obc' | 'ews' | 'other';
+
+export type SchemeScope = 'central' | 'state';
+
+export type ApplicationStatus = 'submitted' | 'under_review' | 'approved' | 'disbursed' | 'rejected';
+
+export interface Scheme {
+  id: string;
+  name: string;
+  description: string;
+  ministry: string;
+  scope: SchemeScope;
+  eligibility: {
+    minAge?: number;
+    maxAge?: number;
+    states?: string[];
+    maxAnnualIncome?: number;
+    categories?: SocialCategory[];
+    occupation?: string;
+    gender?: string;
+    other?: string;
+  };
+  benefits: string;
+  documents: string[];
+  howToApply: string;
+  officialLink: string;
+  icon: string;
+  active: boolean;
+  tags: string[];
+}
+
+export interface SchemeApplication {
+  id: string;
+  userId: string;
+  schemeId: string;
+  schemeName: string;
+  status: ApplicationStatus;
+  submittedAt: Date;
+  updatedAt: Date;
+  timeline: SchemeTimelineEvent[];
+}
+
+export interface SchemeTimelineEvent {
+  status: string;
+  description: string;
+  date: Date;
+}
+
+export interface UserProfileForm {
+  age: number;
+  state: string;
+  annualIncome: number;
+  category: SocialCategory;
+  occupation: string;
+  gender: string;
 }

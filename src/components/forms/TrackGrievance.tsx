@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from '../../i18n';
 import AppService from '../../services/appService';
 import Badge from '../ui/Badge';
 import StatusTimeline from '../ui/StatusTimeline';
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export default function TrackGrievance({ initialTrackingId }: Props) {
+  const { t } = useTranslation();
   const [trackingId, setTrackingId] = useState(initialTrackingId || '');
   const [grievance, setGrievance] = useState<Grievance | null>(null);
   const [loading, setLoading] = useState(false);
@@ -34,10 +36,10 @@ export default function TrackGrievance({ initialTrackingId }: Props) {
       if (result) {
         setGrievance(result);
       } else {
-        setError('No grievance found with this tracking ID');
+        setError(t('track.notFound'));
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch grievance');
+      setError(err.message || t('track.error'));
     } finally {
       setLoading(false);
     }
@@ -49,18 +51,18 @@ export default function TrackGrievance({ initialTrackingId }: Props) {
     <div className="max-w-2xl mx-auto">
       <div className="card mb-6">
         <div className="card-body">
-          <label htmlFor="tracking" className="label">Enter your Tracking ID</label>
+          <label htmlFor="tracking" className="label">{t('track.inputLabel')}</label>
           <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="flex gap-2">
             <input
               id="tracking"
               type="text"
               value={trackingId}
               onChange={(e) => setTrackingId(e.target.value.toUpperCase())}
-              placeholder="e.g. JST-A1B2-C3D4"
+              placeholder={t('track.inputPlaceholder')}
               className="input font-mono"
             />
             <button type="submit" disabled={loading || !trackingId.trim()} className="btn-primary shrink-0">
-              {loading ? 'Searching...' : 'Track'}
+              {loading ? t('common.loading') : t('track.submit')}
             </button>
           </form>
         </div>
@@ -89,11 +91,11 @@ export default function TrackGrievance({ initialTrackingId }: Props) {
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                 <div>
-                  <p className="text-secondary-500">Category</p>
+                  <p className="text-secondary-500">{t('fileGrievance.form.category')}</p>
                   <p className="font-medium text-secondary-900 capitalize">{grievance.category.replace(/_/g, ' ')}</p>
                 </div>
                 <div>
-                  <p className="text-secondary-500">Department</p>
+                  <p className="text-secondary-500">{t('appointments.form.department')}</p>
                   <p className="font-medium text-secondary-900">{grievance.department}</p>
                 </div>
                 <div>
@@ -110,20 +112,20 @@ export default function TrackGrievance({ initialTrackingId }: Props) {
 
               {grievance.assignedToName && (
                 <div className="p-3 bg-primary-50 rounded-lg text-sm">
-                  <span className="text-primary-700 font-medium">Assigned to: </span>
+                  <span className="text-primary-700 font-medium">{t('admin.grievances.assign')}: </span>
                   <span className="text-primary-600">{grievance.assignedToName}</span>
                 </div>
               )}
 
               {grievance.location?.address && (
                 <div className="text-sm text-secondary-500 space-y-0.5">
-                  <div><span className="font-medium">Location: </span>{grievance.location.address}</div>
+                  <div><span className="font-medium">{t('fileGrievance.form.location')}: </span>{grievance.location.address}</div>
                   {grievance.location.landmark && <div><span className="font-medium">Landmark: </span>{grievance.location.landmark}</div>}
-                  {grievance.location.city && <div><span className="font-medium">City/Village: </span>{grievance.location.city}</div>}
+                  {grievance.location.city && <div><span className="font-medium">{t('profile.cityLabel')}: </span>{grievance.location.city}</div>}
                   {grievance.location.wardNo && <div><span className="font-medium">Ward No: </span>{grievance.location.wardNo}</div>}
-                  {grievance.location.district && <div><span className="font-medium">District: </span>{grievance.location.district}</div>}
-                  {grievance.location.state && <div><span className="font-medium">State: </span>{grievance.location.state}</div>}
-                  {grievance.location.pincode && <div><span className="font-medium">Pincode: </span>{grievance.location.pincode}</div>}
+                  {grievance.location.district && <div><span className="font-medium">{t('profile.districtLabel')}: </span>{grievance.location.district}</div>}
+                  {grievance.location.state && <div><span className="font-medium">{t('profile.stateLabel')}: </span>{grievance.location.state}</div>}
+                  {grievance.location.pincode && <div><span className="font-medium">{t('profile.pincodeLabel')}: </span>{grievance.location.pincode}</div>}
                 </div>
               )}
 
@@ -142,7 +144,7 @@ export default function TrackGrievance({ initialTrackingId }: Props) {
           {grievance.feedback && (
             <div className="card">
               <div className="card-header">
-                <h3 className="font-semibold text-secondary-900">Your Feedback</h3>
+                <h3 className="font-semibold text-secondary-900">Feedback</h3>
               </div>
               <div className="card-body">
                 <div className="flex items-center gap-1 mb-2">

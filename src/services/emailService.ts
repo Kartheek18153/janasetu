@@ -1,6 +1,8 @@
 const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY as string | undefined;
 const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID as string | undefined;
 const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID as string | undefined;
+const SMS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SMS_SERVICE_ID as string | undefined;
+const SMS_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_SMS_TEMPLATE_ID as string | undefined;
 
 export async function sendVerificationCodeEmail(toEmail: string, code: string, name: string): Promise<void> {
   if (!SERVICE_ID || !TEMPLATE_ID || !PUBLIC_KEY) {
@@ -32,5 +34,34 @@ export async function sendVerificationCodeEmail(toEmail: string, code: string, n
   if (!response.ok) {
     const text = await response.text();
     throw new Error(text || `EmailJS error (status ${response.status})`);
+  }
+}
+
+export async function sendVerificationCodeSMS(toPhone: string, code: string, name: string): Promise<boolean> {
+  if (!PUBLIC_KEY || !SMS_SERVICE_ID || !SMS_TEMPLATE_ID) return false;
+  try {
+    const response = await fetch('https://api.emailjs.com/api/v1.0/sms/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        service_id: SMS_SERVICE_ID,
+        template_id: SMS_TEMPLATE_ID,
+        user_id: PUBLIC_KEY,
+        template_params: {
+          to: toPhone,
+          to_name: name,
+          user_name: name,
+          from_name: 'JanaSetu',
+          passcode: code,
+          code: code,
+          verification_code: code,
+          time: '5 minutes',
+          message: `Your JanaSetu verification code is: ${code}. Expires in 5 minutes.`,
+        },
+      }),
+    });
+    return response.ok;
+  } catch {
+    return false;
   }
 }

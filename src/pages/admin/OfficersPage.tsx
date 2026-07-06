@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from '../../i18n';
 import AppService from '../../services/appService';
 import Badge from '../../components/ui/Badge';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
@@ -13,6 +14,7 @@ const timeSlots: TimeSlot[] = [
 ];
 
 export default function AdminOfficersPage() {
+  const { t } = useTranslation();
   const [officers, setOfficers] = useState<Officer[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -68,11 +70,11 @@ export default function AdminOfficersPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-secondary-900">Officers</h1>
+          <h1 className="text-2xl font-bold text-secondary-900">{t('admin.officers.title')}</h1>
           <p className="text-secondary-500 mt-1">Manage government officers and their availability</p>
         </div>
         <button onClick={() => setShowModal(true)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-admin-600 to-admin-700 text-white text-sm font-semibold hover:shadow-lg hover:shadow-admin-200/50 transition-all active:scale-[0.97]">
-          <PlusIcon className="h-4 w-4" /> Add Officer
+          <PlusIcon className="h-4 w-4" /> {t('admin.officers.addOfficer')}
         </button>
       </div>
 
@@ -115,7 +117,7 @@ export default function AdminOfficersPage() {
         </div>
       )}
 
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Add Officer" size="lg">
+      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={t('admin.officers.addOfficer')} size="lg">
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -168,7 +170,7 @@ export default function AdminOfficersPage() {
           <div className="flex justify-end gap-3 pt-4 border-t border-secondary-200">
             <button onClick={() => setShowModal(false)} className="px-5 py-2.5 rounded-xl bg-secondary-100 text-secondary-700 text-sm font-semibold hover:bg-secondary-200 transition-all">Cancel</button>
             <button onClick={handleAddOfficer} disabled={!form.name || !form.designation || !form.department} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-admin-600 to-admin-700 text-white text-sm font-semibold hover:shadow-lg hover:shadow-admin-200/50 transition-all active:scale-[0.97] disabled:opacity-50">
-              Add Officer
+              {t('admin.officers.addOfficer')}
             </button>
           </div>
         </div>

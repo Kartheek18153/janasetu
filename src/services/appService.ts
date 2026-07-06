@@ -9,13 +9,15 @@ import {
   reauthenticateWithCredential,
   updatePassword,
   sendEmailVerification,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { auth, db } from '../firebase/config';
 import { doc, setDoc, getDoc, updateDoc, collection, addDoc, getDocs, query, where, orderBy, Timestamp, serverTimestamp, deleteField } from 'firebase/firestore';
 import {
   UserProfile, Grievance, Announcement, Appointment, Officer, Department, Notification,
-  GrievanceCategory, GrievancePriority, TimeSlot,
+  GrievanceCategory, GrievancePriority, TimeSlot, Scheme, SocialCategory, UserProfileForm, SchemeApplication,
 } from '../types';
+import { schemeData } from './schemeData';
 
 function userProfileFromDoc(id: string, data: any): UserProfile {
   return {
@@ -29,6 +31,20 @@ function userProfileFromDoc(id: string, data: any): UserProfile {
     createdAt: data.createdAt?.toDate?.() || data.createdAt || new Date(),
     updatedAt: data.updatedAt?.toDate?.() || data.updatedAt || new Date(),
     isVerified: data.isVerified ?? false,
+    isPhoneVerified: data.isPhoneVerified ?? false,
+    registrationId: data.registrationId,
+    gender: data.gender,
+    nationality: data.nationality,
+    address: data.address,
+    city: data.city,
+    district: data.district,
+    state: data.state,
+    pincode: data.pincode,
+    language: data.language,
+    notificationChannel: data.notificationChannel,
+    grievanceUpdates: data.grievanceUpdates ?? true,
+    appointmentReminders: data.appointmentReminders ?? true,
+    announcementAlerts: data.announcementAlerts ?? false,
   };
 }
 
@@ -61,6 +77,13 @@ export function grievanceFromDoc(id: string, data: any): Grievance {
   };
 }
 
+function generateRegistrationId(): string {
+  const prefix = 'JSTREG';
+  const ts = Date.now().toString(36).toUpperCase();
+  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `${prefix}-${ts}-${rand}`;
+}
+
 export const AppService = {
   async getCurrentUser(): Promise<UserProfile | null> {
     const user = auth.currentUser;
@@ -87,7 +110,7 @@ export const AppService = {
     const profile: UserProfile = {
       uid: cred.user.uid, email, name: cred.user.displayName || email.split('@')[0],
       phone: '', role: expectedRole, createdAt: new Date(), updatedAt: new Date(),
-      isVerified: expectedRole === 'admin' ? true : cred.user.emailVerified,
+      isVerified: false, nationality: 'citizen', registrationId: generateRegistrationId(),
     };
     await setDoc(doc(db, 'users', cred.user.uid), profile);
     return profile;
@@ -103,7 +126,8 @@ export const AppService = {
     const profile: UserProfile = {
       uid: cred.user.uid, email: cred.user.email || '',
       name: cred.user.displayName || 'User', phone: cred.user.phoneNumber || '',
-      role: 'citizen', createdAt: new Date(), updatedAt: new Date(), isVerified: true,
+      role: 'citizen', createdAt: new Date(), updatedAt: new Date(), isVerified: false,
+      nationality: 'citizen', registrationId: generateRegistrationId(),
     };
     await setDoc(doc(db, 'users', cred.user.uid), profile);
     return profile;
@@ -122,6 +146,8 @@ export const AppService = {
       createdAt: new Date(),
       updatedAt: new Date(),
       isVerified: false,
+      nationality: 'citizen',
+      registrationId: generateRegistrationId(),
     };
 
     await setDoc(doc(db, 'users', cred.user.uid), profile);
@@ -343,6 +369,10 @@ export const AppService = {
     }
   },
 
+  async resetPassword(email: string): Promise<void> {
+    await sendPasswordResetEmail(auth, email);
+  },
+
   async updateAppointmentStatus(id: string, status: string): Promise<void> {
     await updateDoc(doc(db, 'appointments', id), { status, updatedAt: serverTimestamp() });
   },
@@ -381,12 +411,128 @@ export const AppService = {
     return true;
   },
 
+  async lookupRegistrationId(email: string): Promise<string | null> {
+    const q = query(collection(db, 'users'), where('email', '==', email));
+    const snap = await getDocs(q);
+    if (snap.empty) return null;
+    return snap.docs[0].data()?.registrationId || null;
+  },
+
   async isEmailVerified(): Promise<boolean> {
     const user = auth.currentUser;
     if (!user) return false;
-    if (user.emailVerified) return true;
     const snap = await getDoc(doc(db, 'users', user.uid));
     return snap.data()?.isVerified ?? false;
+  },
+
+  async isPhoneVerified(): Promise<boolean> {
+    const user = auth.currentUser;
+    if (!user) return false;
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    return snap.data()?.isPhoneVerified ?? false;
+  },
+
+  async generatePhoneVerificationCode(uid: string): Promise<string> {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    await updateDoc(doc(db, 'users', uid), {
+      phoneVerificationCode: code,
+      phoneVerificationCodeExpiresAt: expiresAt,
+    });
+    return code;
+  },
+
+  async verifyPhoneCode(uid: string, code: string): Promise<boolean> {
+    const snap = await getDoc(doc(db, 'users', uid));
+    if (!snap.exists()) return false;
+    const data = snap.data();
+    if (!data.phoneVerificationCode || !data.phoneVerificationCodeExpiresAt) return false;
+    const expiresAt = data.phoneVerificationCodeExpiresAt?.toDate?.() || data.phoneVerificationCodeExpiresAt;
+    if (new Date() > new Date(expiresAt)) return false;
+    if (data.phoneVerificationCode !== code) return false;
+    await updateDoc(doc(db, 'users', uid), {
+      phoneVerificationCode: deleteField(),
+      phoneVerificationCodeExpiresAt: deleteField(),
+      isPhoneVerified: true,
+    });
+    return true;
+  },
+
+  getAllSchemes(): Scheme[] {
+    return schemeData;
+  },
+
+  getSchemesByScope(scope: 'central' | 'state'): Scheme[] {
+    return schemeData.filter(s => s.scope === scope);
+  },
+
+  getSchemeById(id: string): Scheme | undefined {
+    return schemeData.find(s => s.id === id);
+  },
+
+  matchSchemes(profile: UserProfileForm): { scheme: Scheme; score: number; matches: string[] }[] {
+    const results: { scheme: Scheme; score: number; matches: string[] }[] = [];
+    for (const scheme of schemeData) {
+      if (!scheme.active) continue;
+      const matches: string[] = [];
+      const el = scheme.eligibility;
+      let eligible = true;
+
+      if (el.minAge !== undefined && profile.age < el.minAge) eligible = false;
+      if (el.maxAge !== undefined && profile.age > el.maxAge) eligible = false;
+      if (el.maxAnnualIncome !== undefined && profile.annualIncome > el.maxAnnualIncome) eligible = false;
+      if (el.states && el.states.length > 0 && !el.states.includes(profile.state)) eligible = false;
+      if (el.categories && el.categories.length > 0 && !el.categories.includes(profile.category)) eligible = false;
+      if (el.occupation && !profile.occupation.toLowerCase().includes(el.occupation.toLowerCase())) eligible = false;
+      if (el.gender && profile.gender !== el.gender) eligible = false;
+
+      if (!eligible) continue;
+
+      if (el.minAge !== undefined && profile.age >= el.minAge) { matches.push('Age minimum met'); }
+      if (el.maxAge !== undefined && profile.age <= el.maxAge) { matches.push('Age maximum met'); }
+      if (el.maxAnnualIncome !== undefined && profile.annualIncome <= el.maxAnnualIncome) { matches.push('Income criteria met'); }
+      if (el.states && el.states.length > 0 && el.states.includes(profile.state)) { matches.push('State eligible'); }
+      if (el.categories && el.categories.length > 0 && el.categories.includes(profile.category)) { matches.push('Category eligible'); }
+      if (el.occupation && profile.occupation.toLowerCase().includes(el.occupation.toLowerCase())) { matches.push('Occupation matches'); }
+      if (el.gender && profile.gender === el.gender) { matches.push('Gender criteria met'); }
+
+      const criteria = [el.minAge !== undefined, el.maxAge !== undefined, el.maxAnnualIncome !== undefined, (el.states?.length || 0) > 0, (el.categories?.length || 0) > 0, !!el.occupation, !!el.gender];
+      const totalCriteria = criteria.filter(Boolean).length;
+      const score = totalCriteria > 0 ? Math.round((matches.length / totalCriteria) * 100) : 100;
+
+      results.push({ scheme, score, matches });
+    }
+    return results.sort((a, b) => b.score - a.score);
+  },
+
+  async applyForScheme(userId: string, schemeId: string, schemeName: string): Promise<string> {
+    const now = new Date();
+    const app: SchemeApplication = {
+      id: '',
+      userId, schemeId, schemeName,
+      status: 'submitted',
+      submittedAt: now, updatedAt: now,
+      timeline: [{ status: 'submitted', description: 'Application submitted successfully', date: now }],
+    };
+    const ref = await addDoc(collection(db, 'schemeApplications'), app);
+    await updateDoc(ref, { id: ref.id });
+    return ref.id;
+  },
+
+  async getUserSchemeApplications(userId: string): Promise<SchemeApplication[]> {
+    const q = query(collection(db, 'schemeApplications'), where('userId', '==', userId), orderBy('updatedAt', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id, ...data,
+        submittedAt: data.submittedAt?.toDate?.() || data.submittedAt,
+        updatedAt: data.updatedAt?.toDate?.() || data.updatedAt,
+        timeline: (data.timeline || []).map((t: any) => ({
+          ...t, date: t.date?.toDate?.() || t.date,
+        })),
+      } as SchemeApplication;
+    });
   },
 };
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
 import AppService from '../../services/appService';
 import Badge from '../../components/ui/Badge';
@@ -15,6 +16,7 @@ const statusTabs = [
 ];
 
 export default function AdminSchedulePage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +54,7 @@ export default function AdminSchedulePage() {
     <div>
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-secondary-900">Today's Schedule</h1>
+          <h1 className="text-2xl font-bold text-secondary-900">{t('admin.schedule.title')}</h1>
           <p className="text-secondary-500 mt-1">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
         </div>
         <div className="flex gap-1 bg-secondary-100/80 rounded-lg p-1">

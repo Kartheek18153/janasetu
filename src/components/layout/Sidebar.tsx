@@ -4,20 +4,22 @@ import {
   ChartBarIcon, UsersIcon, Cog6ToothIcon, BriefcaseIcon, ClockIcon,
   ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline';
+import { useTranslation } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
 
 const sidebarNav = [
-  { name: 'Dashboard', href: '/admin', icon: ChartBarIcon },
-  { name: 'Grievances', href: '/admin/grievances', icon: ClipboardDocumentListIcon },
-  { name: 'Schedule', href: '/admin/schedule', icon: CalendarDaysIcon },
-  { name: 'Workspace', href: '/admin/workspace', icon: BriefcaseIcon },
-  { name: 'Announcements', href: '/admin/announcements', icon: MegaphoneIcon },
-  { name: 'Appointments', href: '/admin/appointments', icon: ClockIcon },
-  { name: 'Officers', href: '/admin/officers', icon: UsersIcon },
+  { name: 'sidebar.dashboard', href: '/admin', icon: ChartBarIcon },
+  { name: 'sidebar.grievances', href: '/admin/grievances', icon: ClipboardDocumentListIcon },
+  { name: 'sidebar.schedule', href: '/admin/schedule', icon: CalendarDaysIcon },
+  { name: 'sidebar.workspace', href: '/admin/workspace', icon: BriefcaseIcon },
+  { name: 'sidebar.announcements', href: '/admin/announcements', icon: MegaphoneIcon },
+  { name: 'sidebar.appointments', href: '/admin/appointments', icon: ClockIcon },
+  { name: 'sidebar.officers', href: '/admin/officers', icon: UsersIcon },
   { name: 'Settings', href: '/admin/settings', icon: Cog6ToothIcon },
 ];
 
 export default function Sidebar() {
+  const { t } = useTranslation();
   const location = useLocation();
   const { logout } = useAuth();
 
@@ -26,7 +28,7 @@ export default function Sidebar() {
       <div className="flex-1 flex flex-col bg-white/95 backdrop-blur border-r border-admin-200/50 min-h-0">
         <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
           <div className="px-4 pb-2">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-admin-400">Main Navigation</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-admin-400">{t('sidebar.dashboard')}</p>
           </div>
           <nav className="flex-1 px-3 space-y-0.5">
             {sidebarNav.map((item) => {
@@ -46,7 +48,7 @@ export default function Sidebar() {
                   <item.icon className={'mr-3 h-5 w-5 shrink-0 transition-all duration-200 ' + (isActive
                     ? 'text-admin-600'
                     : 'text-secondary-400 group-hover:text-admin-500 group-hover:scale-110')} />
-                  <span>{item.name}</span>
+                  <span>{t(item.name)}</span>
                   {isActive && (
                     <span className="ml-auto text-[10px] font-semibold text-admin-400">●</span>
                   )}
@@ -57,20 +59,19 @@ export default function Sidebar() {
         </div>
 
         <div className="p-3 border-t border-admin-100 space-y-1">
-          <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-admin-400">Session</p>
           <Link
             to="/"
             className="group flex items-center px-3 py-2.5 text-sm font-medium text-secondary-500 rounded-lg hover:bg-admin-50 hover:text-admin-600 transition-all duration-200"
           >
             <HomeIcon className="mr-3 h-5 w-5 text-secondary-400 group-hover:text-admin-500 group-hover:scale-110 transition-all duration-200" />
-            Back to Site
+            {t('common.back')}
           </Link>
           <button
             onClick={logout}
             className="group w-full flex items-center px-3 py-2.5 text-sm font-medium text-secondary-500 rounded-lg hover:bg-red-50 hover:text-red-600 transition-all duration-200"
           >
             <ArrowRightOnRectangleIcon className="mr-3 h-5 w-5 text-secondary-400 group-hover:text-red-500 group-hover:scale-110 transition-all duration-200" />
-            Sign Out
+            {t('sidebar.logout')}
           </button>
         </div>
       </div>

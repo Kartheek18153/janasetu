@@ -1,52 +1,45 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from '../../i18n';
 
 export default function Footer() {
   const { isAdmin } = useAuth();
+  const { t } = useTranslation();
   const location = useLocation();
 
   if (location.pathname !== '/') return null;
 
   return (
-    <footer className={`relative z-10 border-t transition-colors duration-300 ${
-      isAdmin ? 'bg-white/90 border-admin-200/30' : 'bg-white/90 border-secondary-200/30'
-    }`}>
-      {/* Subtle top gradient line */}
-      <div className={`h-0.5 w-full bg-gradient-to-r ${
-        isAdmin
-          ? 'from-admin-400/0 via-admin-400/30 to-admin-400/0'
-          : 'from-primary-400/0 via-primary-400/30 to-primary-400/0'
-      }`} />
+    <footer className={`relative z-10 border-t ${isAdmin ? 'bg-admin-900 text-white' : 'bg-[#1a237e] text-white'}`}>
+      {/* Tricolor stripe */}
+      <div className="h-1 w-full flex">
+        <div className="flex-1 bg-[#FF9933]" />
+        <div className="flex-1 bg-white" />
+        <div className="flex-1 bg-[#138808]" />
+      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="md:col-span-1">
-            <Link to={isAdmin ? '/admin' : '/'} className="flex items-center gap-2 mb-3 group">
-              <div className="h-8 w-8 rounded-lg overflow-hidden transition-all duration-300 group-hover:scale-110">
-                <img src="/logo.png" alt="JanaSetu" className="h-full w-full object-cover" />
-              </div>
-              <span className="text-lg font-bold text-secondary-900">JanaSetu</span>
-            </Link>
-            <p className="text-sm text-secondary-500 leading-relaxed">
-              Smart Grievance Tracking & Citizen-Government Bridge System. Empowering citizens with transparent and efficient governance.
+            <div className="mb-4">
+              <img src="/brand-logo.svg" alt="JanaSetu" className="h-12 w-auto brightness-0 invert" />
+            </div>
+            <p className="text-sm text-white/60 leading-relaxed">
+              JanaSetu is a citizen grievance portal developed under the Digital India Programme to provide citizens with open and easy access to government services.
             </p>
           </div>
 
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-secondary-400 mb-4">Quick Links</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-white/50 mb-4">Quick Links</h3>
             <ul className="space-y-2.5">
               {[
-                { name: 'File a Complaint', href: '/file-grievance' },
+                { name: 'File Grievance', href: '/file-grievance' },
                 { name: 'Track Grievance', href: '/track' },
-                { name: 'Public Announcements', href: '/announcements' },
-                { name: 'Book Appointment', href: '/appointments' },
+                { name: 'Smart Schemes', href: '/schemes' },
+                { name: 'Documents', href: '/documents' },
               ].map(link => (
                 <li key={link.name}>
-                  <Link to={link.href} className={`text-sm transition-all duration-200 hover:translate-x-0.5 inline-block ${
-                    isAdmin
-                      ? 'text-secondary-500 hover:text-admin-600'
-                      : 'text-secondary-500 hover:text-primary-600'
-                  }`}>
+                  <Link to={link.href} className="text-sm text-white/70 hover:text-white transition-colors">
                     {link.name}
                   </Link>
                 </li>
@@ -55,63 +48,52 @@ export default function Footer() {
           </div>
 
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-secondary-400 mb-4">For Officers</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-white/50 mb-4">Government Links</h3>
             <ul className="space-y-2.5">
               {[
-                { name: 'Admin Dashboard', href: '/admin' },
-                { name: 'Manage Grievances', href: '/admin/grievances' },
-                { name: 'Officers Directory', href: '/admin/officers' },
-                { name: 'Daily Schedule', href: '/admin/schedule' },
+                { name: 'India Portal', href: 'https://www.india.gov.in' },
+                { name: 'MyGov', href: 'https://www.mygov.in' },
+                { name: 'Digital India', href: 'https://www.digitalindia.gov.in' },
+                { name: 'CPGRAMS', href: 'https://pgportal.gov.in' },
               ].map(link => (
                 <li key={link.name}>
-                  <Link to={link.href} className={`text-sm transition-all duration-200 hover:translate-x-0.5 inline-block ${
-                    isAdmin
-                      ? 'text-secondary-500 hover:text-admin-600'
-                      : 'text-secondary-500 hover:text-primary-600'
-                  }`}>
-                    {link.name}
-                  </Link>
+                  <a href={link.href} target="_blank" rel="noopener noreferrer" className="text-sm text-white/70 hover:text-white transition-colors">
+                    {link.name} ↗
+                  </a>
                 </li>
               ))}
             </ul>
           </div>
 
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-secondary-400 mb-4">Contact</h3>
-            <ul className="space-y-2.5 text-sm text-secondary-500">
-              <li className="flex items-start gap-2">
-                <span className="mt-0.5 shrink-0">📍</span>
-                <span>District Collectorate</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="mt-0.5 shrink-0">📞</span>
-                <span>Helpline: <span className="font-medium text-secondary-700">1070</span></span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="mt-0.5 shrink-0">✉️</span>
-                <span>support@janasetu.gov.in</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="mt-0.5 shrink-0">🕐</span>
-                <span>10:00 AM - 5:00 PM (Mon-Fri)</span>
-              </li>
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-white/50 mb-4">Contact</h3>
+            <ul className="space-y-2.5 text-sm text-white/70">
+              <li>📍 District Collectorate</li>
+              <li>📞 1800-XXX-XXXX</li>
+              <li>✉️ support@janasetu.gov.in</li>
+              <li>🕐 10:00 AM - 5:00 PM (Mon-Fri)</li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-10 pt-6 border-t border-secondary-200 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-xs text-secondary-400">&copy; {new Date().getFullYear()} JanaSetu. All rights reserved.</p>
-          <div className="flex gap-6 text-xs text-secondary-400">
-            <a href="#" className={`transition-colors duration-200 ${
-              isAdmin ? 'hover:text-admin-600' : 'hover:text-primary-600'
-            }`}>Privacy Policy</a>
-            <a href="#" className={`transition-colors duration-200 ${
-              isAdmin ? 'hover:text-admin-600' : 'hover:text-primary-600'
-            }`}>Terms of Service</a>
-            <a href="#" className={`transition-colors duration-200 ${
-              isAdmin ? 'hover:text-admin-600' : 'hover:text-primary-600'
-            }`}>Accessibility</a>
+        <div className="mt-8 pt-6 border-t border-white/20 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <p className="text-xs text-white/50">
+            &copy; {new Date().getFullYear()} JanaSetu. Portal is developed under the Digital India Programme.
+            Designed, developed, and maintained by NIC.
+          </p>
+          <div className="flex gap-6 text-xs text-white/50">
+            <Link to="/" className="hover:text-white transition-colors">Home</Link>
+            <span>|</span>
+            <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
+            <span>|</span>
+            <a href="#" className="hover:text-white transition-colors">Terms</a>
+            <span>|</span>
+            <a href="#" className="hover:text-white transition-colors">Accessibility</a>
           </div>
+        </div>
+
+        <div className="mt-4 text-center text-[10px] text-white/30">
+          Last reviewed and updated on July 2026. Content on this portal is owned by respective departments.
         </div>
       </div>
     </footer>

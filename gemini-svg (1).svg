@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 600" width="1440" height="600">
+  <defs>
+    <!-- Background Canvas Base Color Gradient -->
+    <linearGradient id="bgCanvas" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#F8FAFC" />
+    </linearGradient>
+
+    <!-- Super Subtle Saffron Radial Glow (Top Left Corner) -->
+    <radialGradient id="saffronGlow" cx="10%" cy="10%" r="50%">
+      <stop offset="0%" stop-color="#FF9933" stop-opacity="0.05" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Super Subtle Green Radial Glow (Bottom Right Corner) -->
+    <radialGradient id="greenGlow" cx="90%" cy="90%" r="50%">
+      <stop offset="0%" stop-color="#138808" stop-opacity="0.04" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Grid Layout Definition (30px x 30px) -->
+    <pattern id="techGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#E2E8F0" stroke-width="0.75" opacity="0.4" />
+    </pattern>
+  </defs>
+
+  <!-- 1. Base Layer: Solid Canvas Background -->
+  <rect width="1440" height="600" fill="url(#bgCanvas)" />
+
+  <!-- 2. Ambient Layers: Tricolor Ambient Light Effects -->
+  <rect width="1440" height="600" fill="url(#saffronGlow)" />
+  <rect width="1440" height="600" fill="url(#greenGlow)" />
+
+  <!-- 3. Infrastructure Layer: Digital Mesh Grid -->
+  <rect width="1440" height="600" fill="url(#techGrid)" />
+
+  <!-- 4. Dynamic Abstract Lines: The "Bridge" Flow Vector Lines (Opposite Side of Text Layout) -->
+  <g opacity="0.15" transform="translate(600, -50)">
+    <!-- Flow Line 1 (Saffron Hint) -->
+    <path d="M-100 200 C 200 100, 400 500, 900 250" fill="none" stroke="#FF9933" stroke-width="3" stroke-dasharray="10, 5" />
+    <!-- Flow Line 2 (Neutral Slate) -->
+    <path d="M-100 240 C 220 140, 380 540, 900 290" fill="none" stroke="#0A2540" stroke-width="1.5" />
+    <!-- Flow Line 3 (Green Hint) -->
+    <path d="M-100 280 C 240 180, 360 580, 900 330" fill="none" stroke="#138808" stroke-width="3" />
+  </g>
+
+  <!-- 5. Decorative Floating Node Elements (Tech Grid Cross Sections) -->
+  <g opacity="0.3" stroke="#94A3B8" stroke-width="1">
+    <circle cx="200" cy="160" r="3" fill="#FF9933" />
+    <circle cx="440" cy="480" r="2" fill="#94A3B8" />
+    <circle cx="1160" cy="120" r="4" fill="#138808" />
+    <circle cx="1280" cy="360" r="3" fill="#0A2540" />
+  </g>
+</svg>

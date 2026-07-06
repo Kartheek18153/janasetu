@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from '../i18n';
 import AppService from '../services/appService';
 import Badge from '../components/ui/Badge';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
@@ -7,6 +8,7 @@ import { MegaphoneIcon } from '@heroicons/react/24/outline';
 import { Announcement } from '../types';
 
 export default function AnnouncementsPage() {
+  const { t } = useTranslation();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [selected, setSelected] = useState<Announcement | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,21 +32,21 @@ export default function AnnouncementsPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-secondary-900">Public Announcements</h1>
-        <p className="mt-2 text-secondary-500">Official announcements, notices, and updates from the District Collectorate</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-secondary-900">{t('announcements.title')}</h1>
+        <p className="mt-2 text-secondary-500">{t('announcements.subtitle')}</p>
       </div>
 
       {/* Filter tabs */}
       <div className="flex flex-wrap gap-2 mb-6">
-        {types.map(t => (
+        {types.map(type => (
           <button
-            key={t}
-            onClick={() => setFilter(t)}
+            key={type}
+            onClick={() => setFilter(type)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              filter === t ? 'bg-primary-600 text-white' : 'bg-white text-secondary-600 hover:bg-secondary-100 border border-secondary-200'
+              filter === type ? 'bg-primary-600 text-white' : 'bg-white text-secondary-600 hover:bg-secondary-100 border border-secondary-200'
             }`}
           >
-            {t === 'all' ? 'All' : t.charAt(0).toUpperCase() + t.slice(1)}
+            {type === 'all' ? t('announcements.filter.all') : type.charAt(0).toUpperCase() + type.slice(1)}
           </button>
         ))}
       </div>
@@ -52,7 +54,7 @@ export default function AnnouncementsPage() {
       {loading ? (
         <LoadingSpinner size="lg" className="py-12" />
       ) : filtered.length === 0 ? (
-        <EmptyState icon={<MegaphoneIcon className="h-12 w-12" />} title="No announcements" description="No announcements have been published yet." />
+        <EmptyState icon={<MegaphoneIcon className="h-12 w-12" />} title={t('announcements.empty')} description={t('announcements.emptyDescription')} />
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {filtered.map(a => (
@@ -68,7 +70,7 @@ export default function AnnouncementsPage() {
                   {a.priority === 'critical' && (
                     <span className="flex items-center gap-1 text-xs text-red-600 font-medium">
                       <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                      ACTIVE
+                      {t('announcements.active')}
                     </span>
                   )}
                 </div>
@@ -76,7 +78,7 @@ export default function AnnouncementsPage() {
                 <p className={`text-sm text-secondary-600 ${selected?.id === a.id ? '' : 'line-clamp-2'}`}>{a.content}</p>
                 <div className="flex items-center gap-4 mt-3 text-xs text-secondary-400">
                   <span>{new Date(a.publishedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-                  <span>by {a.publishedByName}</span>
+                  <span>{t('announcements.by')} {a.publishedByName}</span>
                 </div>
               </div>
             </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 import AppService from '../services/appService';
 import Badge from '../components/ui/Badge';
@@ -9,6 +10,7 @@ import { CalendarDaysIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { Officer, Appointment, TimeSlot } from '../types';
 
 export default function AppointmentsPage() {
+  const { t } = useTranslation();
   const { user, isAuthenticated } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,10 +36,10 @@ export default function AppointmentsPage() {
         ]);
         setDepartments(depts.map(d => d.name));
         setOfficers(offs);
-        if (offs.length === 0) setError('No officers found. Make sure the seed data has run on first load.');
+        if (offs.length === 0) setError(t('appointments.noOfficers'));
         setAppointments(apps);
       } catch (err: any) {
-        setError(err.message || 'Failed to load data');
+        setError(err.message || t('appointments.loadError'));
       } finally {
         setLoading(false);
       }
@@ -76,7 +78,7 @@ export default function AppointmentsPage() {
         preferredDate: new Date(form.preferredDate),
         preferredTimeSlot: form.preferredTimeSlot as TimeSlot,
       });
-      setSuccess('Appointment request submitted successfully!');
+      setSuccess(t('appointments.success'));
       const updated = await AppService.getAppointmentsByCitizen(user.uid);
       setAppointments(updated);
       setShowModal(false);
@@ -94,18 +96,18 @@ export default function AppointmentsPage() {
     <div>
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-secondary-900">Appointments</h1>
-          <p className="mt-2 text-secondary-500">Book appointments with government officers</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-secondary-900">{t('appointments.title')}</h1>
+          <p className="mt-2 text-secondary-500">{t('appointments.subtitle')}</p>
         </div>
         <button
           onClick={() => {
-            if (!isAuthenticated) { setError('Please sign in first'); return; }
+            if (!isAuthenticated) { setError(t('appointments.auth.required')); return; }
             setSuccess(null); setTouched({}); setShowModal(true);
           }}
           className="btn-primary"
-        >
-          Book Appointment
-        </button>
+          >
+            {t('appointments.book')}
+          </button>
       </div>
 
       {error && (
@@ -119,10 +121,10 @@ export default function AppointmentsPage() {
       {!isAuthenticated ? (
         <div className="card p-8 text-center">
           <CalendarDaysIcon className="h-16 w-16 mx-auto text-secondary-300 mb-4" />
-          <h2 className="text-xl font-semibold text-secondary-900 mb-2">Sign in to Book Appointments</h2>
-          <p className="text-secondary-500 mb-6">You need to sign in to book appointments with government officers.</p>
+          <h2 className="text-xl font-semibold text-secondary-900 mb-2">{t('appointments.auth.title')}</h2>
+          <p className="text-secondary-500 mb-6">{t('appointments.auth.description')}</p>
           <button onClick={() => setShowModal(true)} className="btn-primary">
-            Book Appointment
+            {t('appointments.book')}
           </button>
         </div>
       ) : loading ? (
@@ -131,7 +133,7 @@ export default function AppointmentsPage() {
         <>
           {appointments.length > 0 && (
             <div className="mb-8">
-              <h2 className="text-lg font-semibold text-secondary-900 mb-4">Your Appointments</h2>
+              <h2 className="text-lg font-semibold text-secondary-900 mb-4">{t('appointments.myAppointments')}</h2>
               <div className="grid grid-cols-1 gap-4">
                 {appointments.map(app => (
                   <div key={app.id} className="card hover:shadow-lg transition-shadow">
@@ -140,7 +142,7 @@ export default function AppointmentsPage() {
                         <div>
                           <h3 className="font-semibold text-secondary-900">{app.purpose}</h3>
                           <p className="text-sm text-secondary-500 mt-1">
-                            with {app.officerName} ({app.officerDesignation})
+                            {t('appointments.withOfficer', { name: app.officerName, designation: app.officerDesignation })}
                           </p>
                         </div>
                         <Badge status={app.status} />
@@ -165,14 +167,14 @@ export default function AppointmentsPage() {
 
           <div className="card">
             <div className="card-header">
-              <h2 className="font-semibold text-secondary-900">Available Officers</h2>
+              <h2 className="font-semibold text-secondary-900">{t('appointments.availableOfficers')}</h2>
             </div>
             <div className="card-body">
               {officers.length === 0 ? (
                 <EmptyState
                   icon={<CalendarDaysIcon className="h-12 w-12" />}
-                  title="No officers available"
-                  description="Check back later for available officers."
+                  title={t('appointments.noOfficersTitle')}
+                  description={t('appointments.noOfficersDescription')}
                 />
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -187,7 +189,7 @@ export default function AppointmentsPage() {
                           <h3 className="font-semibold text-secondary-900">{o.name}</h3>
                           <p className="text-sm text-secondary-500">{o.designation}</p>
                         </div>
-                        <span className="px-2 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium">Available</span>
+                        <span className="px-2 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium">{t('appointments.available')}</span>
                       </div>
                       <p className="text-xs text-secondary-400 mb-2">{o.department}</p>
                       <div className="flex flex-wrap gap-1.5">
@@ -207,30 +209,30 @@ export default function AppointmentsPage() {
         </>
       )}
 
-      <Modal isOpen={showModal} onClose={() => { setShowModal(false); setTouched({}); }} title="Book Appointment" size="lg">
+      <Modal isOpen={showModal} onClose={() => { setShowModal(false); setTouched({}); }} title={t('appointments.book')} size="lg">
         {!isAuthenticated ? (
           <div className="text-center py-6">
-            <p className="text-secondary-600 mb-4">Please sign in to book an appointment.</p>
-            <a href="/login" className="btn-primary">Sign In</a>
+            <p className="text-secondary-600 mb-4">{t('appointments.auth.prompt')}</p>
+            <a href="/login" className="btn-primary">{t('appointments.auth.login')}</a>
           </div>
         ) : (
           <div className="space-y-4">
             <div>
-              <label className="label">Department</label>
+              <label className="label">{t('appointments.form.department')}</label>
               <select
                 value={form.department}
                 onChange={(e) => { setForm(prev => ({ ...prev, department: e.target.value, officerId: '' })); touchField('department'); }}
                 className={`input ${touched.department && !form.department ? 'border-red-300' : ''}`}
               >
-                <option value="">Select department</option>
+                <option value="">{t('appointments.form.departmentPlaceholder')}</option>
                 {departments.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
-              {touched.department && !form.department && <p className="text-xs text-red-500 mt-1">Department is required</p>}
+              {touched.department && !form.department && <p className="text-xs text-red-500 mt-1">{t('appointments.form.departmentRequired')}</p>}
             </div>
 
             {filteredOfficers.length > 0 && (
               <div>
-                <label className="label">Officer</label>
+                <label className="label">{t('appointments.form.officer')}</label>
                 <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto">
                   {filteredOfficers.map(o => (
                     <button
@@ -247,32 +249,32 @@ export default function AppointmentsPage() {
                       <p className="text-secondary-500 text-xs">{o.designation}</p>
                       {o.availableSlots.length > 0 && (
                         <p className="text-[11px] text-green-600 mt-1">
-                          Available: {o.availableSlots.join(', ')}
+                          {t('appointments.availableSlots')}: {o.availableSlots.join(', ')}
                         </p>
                       )}
                     </button>
                   ))}
                 </div>
-                {touched.officerId && !form.officerId && <p className="text-xs text-red-500 mt-1">Please select an officer</p>}
+                {touched.officerId && !form.officerId && <p className="text-xs text-red-500 mt-1">{t('appointments.form.officerRequired')}</p>}
               </div>
             )}
 
             {selectedOfficer && (
               <>
                 <div>
-                  <label className="label">Purpose</label>
+                  <label className="label">{t('appointments.form.purpose')}</label>
                   <input
                     type="text"
                     value={form.purpose}
                     onChange={(e) => { setForm(prev => ({ ...prev, purpose: e.target.value })); touchField('purpose'); }}
                     className={`input ${touched.purpose && !form.purpose ? 'border-red-300' : ''}`}
-                    placeholder="Brief purpose of your visit"
+                    placeholder={t('appointments.form.purposePlaceholder')}
                   />
-                  {touched.purpose && !form.purpose && <p className="text-xs text-red-500 mt-1">Purpose is required</p>}
+                  {touched.purpose && !form.purpose && <p className="text-xs text-red-500 mt-1">{t('appointments.form.purposeRequired')}</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="label">Preferred Date</label>
+                    <label className="label">{t('appointments.form.date')}</label>
                     <input
                       type="date"
                       value={form.preferredDate}
@@ -280,34 +282,34 @@ export default function AppointmentsPage() {
                       min={minDate}
                       className={`input ${touched.preferredDate && !form.preferredDate ? 'border-red-300' : ''}`}
                     />
-                    {touched.preferredDate && !form.preferredDate && <p className="text-xs text-red-500 mt-1">Date is required</p>}
+                    {touched.preferredDate && !form.preferredDate && <p className="text-xs text-red-500 mt-1">{t('appointments.form.dateRequired')}</p>}
                   </div>
                   <div>
-                    <label className="label">Preferred Time</label>
+                    <label className="label">{t('appointments.form.timeSlot')}</label>
                     <select
                       value={form.preferredTimeSlot}
                       onChange={(e) => { setForm(prev => ({ ...prev, preferredTimeSlot: e.target.value })); touchField('preferredTimeSlot'); }}
                       className={`input ${touched.preferredTimeSlot && !form.preferredTimeSlot ? 'border-red-300' : ''}`}
                     >
-                      <option value="">Select time</option>
+                      <option value="">{t('appointments.form.timeSlotPlaceholder')}</option>
                       {selectedOfficer.availableSlots.map(s => (
                         <option key={s} value={s}>{s}</option>
                       ))}
                     </select>
-                    {touched.preferredTimeSlot && !form.preferredTimeSlot && <p className="text-xs text-red-500 mt-1">Time slot is required</p>}
+                    {touched.preferredTimeSlot && !form.preferredTimeSlot && <p className="text-xs text-red-500 mt-1">{t('appointments.form.timeSlotRequired')}</p>}
                   </div>
                 </div>
               </>
             )}
 
             <div className="flex justify-end gap-3 pt-4 border-t border-secondary-200">
-              <button onClick={() => { setShowModal(false); setTouched({}); }} className="btn-secondary">Cancel</button>
+              <button onClick={() => { setShowModal(false); setTouched({}); }} className="btn-secondary">{t('common.cancel')}</button>
               <button
                 onClick={handleBook}
                 disabled={submitting}
                 className="btn-primary"
               >
-                {submitting ? 'Booking...' : 'Request Appointment'}
+                {submitting ? t('appointments.form.submitting') : t('appointments.form.submit')}
               </button>
             </div>
           </div>
