@@ -2,17 +2,17 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AppService from '../services/appService';
-import { sendVerificationCodeEmail, sendVerificationCodeSMS } from '../services/emailService';
+import { sendVerificationCodeEmail } from '../services/emailService';
 import { auth } from '../firebase/config';
 import { isDisposableEmail } from '../utils/emailValidation';
 import Captcha from '../components/ui/Captcha';
 import { useTranslation } from '../i18n';
 
 export default function RegisterPage() {
-  const { register, refreshProfile } = useAuth();
+  const { register, refreshProfile, setVerificationPending } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState('');
@@ -25,17 +25,14 @@ export default function RegisterPage() {
   const [codeSendError, setCodeSendError] = useState('');
   const [fallbackCode, setFallbackCode] = useState('');
   const [resending, setResending] = useState(false);
-  const [sendingSms, setSendingSms] = useState(false);
-  const [smsSent, setSmsSent] = useState(false);
-  const [showCode, setShowCode] = useState(false);
   const [captchaValid, setCaptchaValid] = useState(false);
 
   const update = (f: string, v: string) => { setForm(prev => ({ ...prev, [f]: v })); setTouched(prev => ({ ...prev, [f]: true })); };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setTouched({ name: true, email: true, phone: true, password: true, confirmPassword: true });
-    if (!form.name || !form.email || !form.phone || !form.password) {
+    setTouched({ name: true, email: true, password: true, confirmPassword: true });
+    if (!form.name || !form.email || !form.password) {
       setError('Please fill in all fields'); return;
     }
     if (form.password.length < 6) {
@@ -53,7 +50,7 @@ export default function RegisterPage() {
     setLoading(true);
     setError('');
     try {
-      await register({ email: form.email, password: form.password, name: form.name, phone: form.phone });
+      await register({ email: form.email, password: form.password, name: form.name });
       const code = await AppService.generateVerificationCode(auth.currentUser!.uid);
       setFallbackCode(code);
       try {
@@ -62,6 +59,7 @@ export default function RegisterPage() {
       } catch (emailErr: any) {
         setCodeSendError(emailErr.message || 'Email delivery failed. Your verification code is shown below.');
       }
+      setVerificationPending(true);
       setShowVerify(true);
     } catch (err: any) {
       setError(err.message || 'Registration failed');
@@ -75,6 +73,7 @@ export default function RegisterPage() {
     setVerifyError('');
     const ok = await AppService.verifyEmailCode(auth.currentUser.uid, enteredCode);
     if (ok) {
+      setVerificationPending(false);
       await refreshProfile();
       navigate('/');
     } else {
@@ -97,7 +96,15 @@ export default function RegisterPage() {
       <style>{`html, body { background-color: #fef0db !important; }`}</style>
       <div className="relative w-full max-w-md z-10">
         <div className="text-center mb-6">
-          <div className="text-3xl font-bold text-primary-700 mb-2">JanaSetu</div>
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg ring-2 ring-primary-100">
+              <img src="/logo.png" alt="" className="w-full h-full object-cover" />
+            </div>
+            <span className="text-3xl font-bold text-primary-700">JanaSetu</span>
+          </div>
+        </div>
+        <div className="absolute -top-20 -right-20 w-40 h-40 opacity-[0.08] pointer-events-none hidden sm:block">
+          <img src="/Gemini_Generated_Image_obl5ixobl5ixobl5.png" alt="" className="w-full h-full object-cover rounded-2xl rotate-12" />
         </div>
         <div className="card">
           <div className="card-body p-8">
@@ -139,19 +146,6 @@ export default function RegisterPage() {
                       required
                     />
                     {touched.email && !form.email && <p className="text-xs text-red-500 mt-1">Email is required</p>}
-                  </div>
-                  <div>
-                    <label className="label">{t('register.phoneLabel')}</label>
-                    <input
-                      type="tel"
-                      value={form.phone}
-                      onChange={(e) => update('phone', e.target.value)}
-                      className={`input ${touched.phone && !form.phone ? 'border-red-300' : ''}`}
-                      placeholder={t('register.phonePlaceholder')}
-                      maxLength={10}
-                      required
-                    />
-                    {touched.phone && !form.phone && <p className="text-xs text-red-500 mt-1">Phone number is required</p>}
                   </div>
                   <div>
                     <label className="label">{t('register.passwordLabel')}</label>
@@ -211,30 +205,15 @@ export default function RegisterPage() {
                   <svg className="h-8 w-8 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                 </div>
                 <h3 className="text-lg font-bold text-secondary-900 mb-2">{t('register.verifyTitle')}</h3>
-                <p className="text-sm text-secondary-500 mb-3">
-                  {t('register.verifyDesc')} <strong>{form.email}</strong>.
-                </p>
-                {form.phone && (
-                  <p className="text-xs text-secondary-400 mb-3">
-                    Also sent via SMS to <strong>{form.phone}</strong>
-                    {smsSent && <span className="text-emerald-600 ml-1">✓</span>}
+                  <p className="text-sm text-secondary-500 mb-1">
+                    {t('register.verifyDesc')} <strong>{form.email}</strong>.
                   </p>
-                )}
+                  <p className="text-xs text-secondary-400 mb-3">
+                    Verification code is sent to the respective email. Please check it. If not received, check in spam.
+                  </p>
                 {codeSendError && (
                   <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
                     {codeSendError}
-                  </div>
-                )}
-                {!showCode ? (
-                  <div className="mb-3">
-                    <p className="text-xs text-secondary-400 mb-2">
-                      Can't find the code? <button onClick={() => setShowCode(true)} className="text-primary-600 hover:text-primary-700 font-medium underline">Show code</button>
-                    </p>
-                  </div>
-                ) : (
-                  <div className="mb-3 p-3 bg-primary-50 border border-primary-200 rounded-lg">
-                    <p className="text-xs text-primary-600 font-medium mb-1">Your verification code</p>
-                    <p className="text-3xl font-mono font-bold text-primary-700 tracking-[0.25em]">{fallbackCode}</p>
                   </div>
                 )}
                 <input
@@ -258,7 +237,6 @@ export default function RegisterPage() {
                       try {
                         const code = await AppService.generateVerificationCode(auth.currentUser.uid);
                         setFallbackCode(code);
-                        setShowCode(true);
                         await sendVerificationCodeEmail(form.email, code, form.name);
                         setCodeSent(true);
                       } catch (emailErr: any) {
@@ -272,32 +250,6 @@ export default function RegisterPage() {
                   >
                     {resending ? 'Resending...' : t('login.resendCode')}
                   </button>
-                  {form.phone && (
-                    <button
-                      onClick={async () => {
-                        if (!auth.currentUser || !form.phone) return;
-                        setSendingSms(true);
-                        setSmsSent(false);
-                        try {
-                          const code = await AppService.generateVerificationCode(auth.currentUser.uid);
-                          setFallbackCode(code);
-                          setShowCode(true);
-                          const ok = await sendVerificationCodeSMS(form.phone, code, form.name);
-                          if (ok) {
-                            setSmsSent(true);
-                          } else {
-                            setCodeSendError('SMS delivery unavailable. Your code is shown above.');
-                          }
-                        } finally {
-                          setSendingSms(false);
-                        }
-                      }}
-                      disabled={sendingSms}
-                      className="flex-1 text-sm text-primary-600 hover:text-primary-700 font-medium disabled:opacity-50 py-2 rounded-lg border border-primary-200 hover:bg-primary-50 transition-colors"
-                    >
-                      {sendingSms ? 'Sending...' : smsSent ? 'Sent ✓' : 'Send as SMS'}
-                    </button>
-                  )}
                 </div>
               </div>
             )}

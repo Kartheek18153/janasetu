@@ -61,8 +61,8 @@ const serviceColors = [
 
 const services = [
   { icon: DocumentTextIcon, titleKey: 'home.services.fileGrievance', descKey: 'home.services.fileGrievance.desc', link: '/file-grievance', colorIdx: 0, img: '/feature-grievance.jpg' },
-  { icon: MagnifyingGlassIcon, titleKey: 'home.services.trackGrievance', descKey: 'home.services.trackGrievance.desc', link: '/track', colorIdx: 1, img: '' },
-  { icon: MegaphoneIcon, titleKey: 'home.services.announcements', descKey: 'home.services.announcements.desc', link: '/announcements', colorIdx: 2, img: '' },
+  { icon: MagnifyingGlassIcon, titleKey: 'home.services.trackGrievance', descKey: 'home.services.trackGrievance.desc', link: '/track', colorIdx: 1, img: '/images (2).jpg' },
+  { icon: MegaphoneIcon, titleKey: 'home.services.announcements', descKey: 'home.services.announcements.desc', link: '/announcements', colorIdx: 2, img: '/images (3).jpg' },
   { icon: CalendarDaysIcon, titleKey: 'home.services.bookAppointment', descKey: 'home.services.bookAppointment.desc', link: '/appointments', colorIdx: 3, img: '/feature-appointment.jpg' },
   { icon: SparklesIcon, titleKey: 'home.services.schemes', descKey: 'home.services.schemes.desc', link: '/schemes', colorIdx: 0, img: '/feature-schemes.jpg' },
 ];
@@ -125,8 +125,8 @@ export default function HomePage() {
   const [stats, setStats] = useState(emptyStats);
   const [myGrievances, setMyGrievances] = useState<Grievance[]>([]);
   const [grievanceTab, setGrievanceTab] = useState<'all' | 'resolved' | 'pending'>('all');
-  const [showBackTop, setShowBackTop] = useState(false);
   const [noticeIndex, setNoticeIndex] = useState(0);
+  const [schemes, setSchemes] = useState<any[]>([]);
 
   const notices = [
     { textKey: 'notice.extendedDeadline', link: '/announcements' },
@@ -154,14 +154,6 @@ export default function HomePage() {
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    const onScroll = () => {
-      setShowBackTop(window.scrollY > 500);
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
   const filteredHomeGrievances = useMemo(() => {
     if (grievanceTab === 'resolved') return myGrievances.filter(g => g.status === 'resolved' || g.status === 'closed');
     if (grievanceTab === 'pending') return myGrievances.filter(g => g.status === 'submitted' || g.status === 'under_review');
@@ -187,6 +179,13 @@ export default function HomePage() {
     };
     fetchData();
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    fetch('https://indiandataproject.org/data/budget/2025-26/schemes.json')
+      .then(res => res.json())
+      .then(data => setSchemes(data.schemes || []))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
@@ -244,27 +243,9 @@ export default function HomePage() {
       <section
         id="home"
         ref={el => { sectionRefs.current[0] = el; }}
-        className="relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-primary-900"
+        className="relative overflow-hidden bg-gradient-to-br from-primary-600 to-red-900"
       >
-        <div className="absolute inset-0 pointer-events-none">
-          <img src="/hero-bg.svg" alt="" className="w-full h-full object-cover opacity-40" />
-        </div>
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full bg-white/5 blur-3xl" />
-          <div className="absolute -bottom-40 -left-40 w-[600px] h-[600px] rounded-full bg-citizen-yellow/5 blur-3xl" />
-          <div className="absolute top-1/4 right-1/3 w-2 h-2 rounded-full bg-white/20 animate-ping" style={{ animationDuration: '4s' }} />
-          <div className="absolute bottom-1/3 left-1/4 w-1.5 h-1.5 rounded-full bg-white/20 animate-ping" style={{ animationDuration: '5s' }} />
-          <div className="absolute top-8 right-8 opacity-[0.04]">
-            <AshokaChakra className="w-48 h-48 text-white" />
-          </div>
-          <div className="absolute bottom-8 left-8 opacity-[0.03]">
-            <AshokaChakra className="w-36 h-36 text-white" />
-          </div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02]">
-            <AshokaChakra className="w-72 h-72 text-white" />
-          </div>
-        </div>
-
+        <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px]" />
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
           <div className="flex items-center gap-12">
             <div className="flex-1 max-w-3xl">
@@ -300,32 +281,34 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="hidden lg:flex flex-col items-center justify-center relative -mr-8 gap-4">
-              <div className="relative w-[30rem] rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/10">
-                <div className="absolute inset-0 bg-gradient-to-t from-primary-900/60 via-transparent to-primary-800/20 z-10" />
-                <img
-                  src="/hero-people.jpg"
-                  alt="citizens"
-                  className="w-full h-auto"
-                />
-                <div className="absolute bottom-0 left-0 right-0 z-20 p-6 bg-gradient-to-t from-primary-900/80 to-transparent">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                      <Emblem className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-white text-xs font-bold tracking-wider uppercase">Digital India</p>
-                      <p className="text-white/70 text-[10px]">Power to Empower</p>
+            <div className="hidden lg:block relative -mr-8 [perspective:1000px] group">
+              <div className="[transform-style:preserve-3d] transition-transform duration-700 group-hover:[transform:rotateY(180deg)] relative">
+                <div className="[backface-visibility:hidden]">
+                  <div className="relative w-[30rem] rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/10">
+                    <div className="absolute inset-0 bg-gradient-to-t from-red-900/50 via-transparent to-primary-500/10 z-10" />
+                    <img
+                      src="/hero-people.jpg"
+                      alt="citizens"
+                      className="w-full h-auto"
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 z-20 p-6 bg-gradient-to-t from-red-900/70 to-transparent">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                          <Emblem className="h-6 w-6 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-white text-xs font-bold tracking-wider uppercase">Digital India</p>
+                          <p className="text-white/70 text-[10px]">Power to Empower</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl px-5 py-3 border border-white/10 max-w-sm">
-                <p className="text-primary-100 text-xs leading-relaxed text-center">
-                  <span className="text-citizen-yellow font-semibold">"</span>
-                  {t('hero.digitalGovernance')}
-                  <span className="text-citizen-yellow font-semibold">"</span>
-                </p>
+                <div className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] bg-gradient-to-br from-white to-green-600 rounded-3xl flex items-center justify-center p-8">
+                  <p className="text-green-900 text-center text-sm leading-relaxed">
+                    "Digital governance empowers every citizen with transparent, accessible, and efficient public services — bridging the gap between people and government."
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -357,6 +340,37 @@ export default function HomePage() {
         </section>
       )}
 
+      {/* ===== FEATURED SCHEMES ===== */}
+      {schemes.length > 0 && (
+        <section className="py-14 sm:py-20 bg-gradient-to-b from-secondary-50 to-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-xl mx-auto mb-10">
+              <span className="text-xs font-bold tracking-[1.4px] uppercase block mb-2 text-citizen-blue">
+                {t('home.services.label')}
+              </span>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-serif text-secondary-900">
+                Featured Government Schemes
+              </h2>
+              <p className="mt-3 text-secondary-500 text-sm sm:text-base">
+                Real-time data from the Union Budget — major central welfare schemes with allocation details
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              {schemes.map((s: any) => (
+                <div key={s.id} className="bg-white border border-secondary-200 rounded-xl p-5 hover:shadow-lg transition-all hover:-translate-y-0.5">
+                  <h3 className="text-sm font-bold text-secondary-900 mb-1.5 leading-tight">{s.name}</h3>
+                  <p className="text-xs text-secondary-500 mb-3 line-clamp-2 leading-relaxed">{s.humanContext}</p>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-secondary-400">{s.ministryName}</span>
+                    <span className="font-semibold text-citizen-green">₹{(s.allocation / 1000).toFixed(1)}K Cr</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ===== HOW IT WORKS ===== */}
       <section id="how" ref={el => { sectionRefs.current[1] = el; }} className="py-14 sm:py-20 bg-white border-y border-secondary-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -372,18 +386,21 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="relative mb-8 rounded-2xl overflow-hidden bg-gradient-to-r from-secondary-50 to-white border border-secondary-200 p-6">
-            <div className="flex items-center gap-6">
+          <div className="relative mb-8 rounded-2xl overflow-hidden bg-gradient-to-r from-secondary-50 to-white border border-secondary-200">
+            <div className="flex items-center gap-6 p-6">
               <div className="hidden md:block w-48 h-36 flex-shrink-0 overflow-hidden rounded-xl">
                 <img src="/network-map.svg" alt="network" className="w-full h-full object-cover opacity-80" />
               </div>
-              <div>
+              <div className="flex-1">
                 <p className="text-sm text-secondary-600 leading-relaxed">
                   JanaSetu connects citizens with over 20 central and state government welfare schemes. 
                   Our intelligent recommendation engine matches your profile with the right schemes, 
                   ensuring you never miss out on benefits you're entitled to.
                 </p>
               </div>
+            </div>
+            <div className="hidden lg:block absolute right-0 top-0 bottom-0 w-48 overflow-hidden opacity-30">
+              <img src="/Gemini_Generated_Image_r1pkvfr1pkvfr1pk.png" alt="" className="w-full h-full object-cover" />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -540,18 +557,18 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
-              { title: 'Voter Registration Drive', tag: 'Election Commission', color: 'from-[#FF9933] to-[#ea580c]', icon: '🗳️' },
-              { title: 'Ayushman Bharat Health', tag: 'Health Ministry', color: 'from-[#138808] to-[#15803d]', icon: '🏥' },
-              { title: 'Swachh Bharat Mission', tag: 'Urban Development', color: 'from-[#1a237e] to-[#283593]', icon: '🧹' },
-              { title: 'Skill India Campaign', tag: 'Skill Development', color: 'from-[#f97316] to-[#FF9933]', icon: '🛠️' },
+              { title: 'Voter Registration Drive', tag: 'Election Commission', img: '/Gemini_Generated_Image_h1gq3jh1gq3jh1gq.png' },
+              { title: 'Ayushman Bharat Health', tag: 'Health Ministry', img: '/images (4).jpg' },
+              { title: 'Swachh Bharat Mission', tag: 'Urban Development', img: '/Gemini_Generated_Image_39q49w39q49w39q4.png' },
+              { title: 'Skill India Campaign', tag: 'Skill Development', img: '/Gemini_Generated_Image_8qtbvm8qtbvm8qtb.png' },
             ].map((poster) => (
               <div key={poster.title} className="group relative rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
-                <div className={`h-44 bg-gradient-to-br ${poster.color} flex items-center justify-center relative`}>
-                  <div className="absolute inset-0 opacity-[0.08]">
+                <div className="h-44 relative overflow-hidden">
+                  <img src={poster.img} alt={poster.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+                  <div className="absolute inset-0 opacity-[0.06] pointer-events-none">
                     <AshokaChakra className="w-full h-full text-white" />
                   </div>
-                  <span className="text-5xl relative z-10">{poster.icon}</span>
-                  <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/40 to-transparent" />
                 </div>
                 <div className="p-4 bg-white">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-citizen-blue">{poster.tag}</span>
@@ -629,6 +646,9 @@ export default function HomePage() {
             <div className="absolute inset-0 pointer-events-none">
               <div className="absolute top-0 -left-20 w-72 h-72 rounded-full bg-white/5 blur-3xl" />
               <div className="absolute bottom-0 -right-20 w-96 h-96 rounded-full bg-citizen-yellow/5 blur-3xl" />
+              <div className="absolute top-1/3 right-8 w-16 h-16 opacity-[0.08] hidden sm:block">
+                <img src="/gemini-svg.svg" alt="" className="w-full h-full object-contain" />
+              </div>
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.04]">
                 <AshokaChakra className="w-48 h-48 text-white" />
               </div>
@@ -662,17 +682,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* ===== Back to top ===== */}
-      <button
-        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        className={'fixed bottom-6 right-6 w-11 h-11 rounded-full bg-secondary-900 text-white shadow-xl flex items-center justify-center z-50 transition-all duration-300 hover:bg-citizen-yellow hover:text-secondary-900 ' + (showBackTop ? 'opacity-100 pointer-events-auto translate-y-0' : 'opacity-0 pointer-events-none translate-y-3')}
-        aria-label={t('home.backToTop')}
-      >
-        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-          <line x1="12" y1="20" x2="12" y2="4" /><polyline points="18 10 12 4 6 10" />
-        </svg>
-      </button>
 
       <style>{`
         .notice-enter { opacity: 0; transform: translateY(8px); }

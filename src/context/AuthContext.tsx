@@ -13,10 +13,11 @@ interface AuthContextType {
   isVerified: boolean;
   isPhoneVerified: boolean;
   login: (email: string, password: string) => Promise<UserProfile>;
-  register: (data: { email: string; password: string; name: string; phone: string }) => Promise<void>;
+  register: (data: { email: string; password: string; name: string; phone?: string }) => Promise<void>;
   loginWithGoogle: () => Promise<UserProfile>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  setVerificationPending: (v: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,6 +26,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const pendingLoginRef = useRef(false);
+  const verificationPendingRef = useRef(false);
+
+  const setVerificationPending = (v: boolean) => { verificationPendingRef.current = v; };
 
   const loadProfile = useCallback(async (uid: string) => {
     const profile = await AppService.getCurrentUser();
@@ -41,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (cancelled) return;
       if (pendingLoginRef.current) return;
+      if (verificationPendingRef.current) return;
       if (firebaseUser) {
         const ok = await loadProfile(firebaseUser.uid);
         if (!ok && !cancelled) {
@@ -75,18 +80,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     pendingLoginRef.current = true;
     try {
       const u = await AppService.loginWithGoogle();
-      setUser(u);
       return u;
     } finally {
       pendingLoginRef.current = false;
     }
   };
 
-  const register = async (data: { email: string; password: string; name: string; phone: string }) => {
+  const register = async (data: { email: string; password: string; name: string; phone?: string }) => {
     pendingLoginRef.current = true;
     try {
       const u = await AppService.register(data);
-      setUser(u);
+      return u;
     } finally {
       pendingLoginRef.current = false;
     }
@@ -115,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loginWithGoogle,
     logout,
     refreshProfile,
+    setVerificationPending,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import Sidebar from './Sidebar';
+import AccessibilityBar from './AccessibilityBar';
 import VoiceAssistant from '../voice/VoiceAssistant';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
@@ -55,6 +56,8 @@ export default function Layout() {
             <Link to="/documents" className="text-white/70 hover:text-white transition-colors">Documents</Link>
             <span className="text-white/30">|</span>
             <a href="https://www.india.gov.in" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white transition-colors">India Portal</a>
+            <span className="text-white/30">|</span>
+            <AccessibilityBar />
           </div>
         </div>
       </div>
@@ -105,7 +108,7 @@ export default function Layout() {
         </main>
       </div>
 
-      <VoiceAssistant />
+      {isAuthenticated && <VoiceAssistant />}
       <Footer />
     </div>
   );

@@ -86,7 +86,10 @@ export default function SchemeDetailPage() {
     : 'bg-citizen-blue/10 text-citizen-blue';
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
+      <div className="absolute -right-8 top-20 w-40 h-32 opacity-[0.05] pointer-events-none hidden lg:block">
+        <img src="/images (2).jpg" alt="" className="w-full h-full object-cover rounded-xl" />
+      </div>
       {/* Back Button */}
       <button
         type="button"

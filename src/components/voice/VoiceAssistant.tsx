@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { askAI, hasApiKey } from '../../services/aiService';
 import {
-  MicrophoneIcon, XMarkIcon, PaperAirplaneIcon, SpeakerWaveIcon,
+  SparklesIcon, MicrophoneIcon, XMarkIcon, PaperAirplaneIcon, SpeakerWaveIcon,
 } from '@heroicons/react/24/outline';
 
 interface ChatMessage {
@@ -207,29 +207,36 @@ export default function VoiceAssistant() {
     setChat([]);
     setTranscript('');
     setInput('');
+    setProcessing(false);
   };
 
   return (
     <>
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-24 right-6 z-40 h-14 w-14 rounded-full bg-primary-600 text-white shadow-lg hover:bg-primary-700 hover:shadow-xl transition-all duration-200 flex items-center justify-center active:scale-95"
-        aria-label="Open voice assistant"
+        className="fixed bottom-6 right-6 z-40 bg-sky-500 text-white shadow-lg hover:bg-sky-400 hover:shadow-xl hover:shadow-sky-500/50 hover:scale-110 hover:-translate-y-1 transition-all duration-300 flex items-center justify-center active:scale-95 font-bold text-xl px-8 py-4 rounded-full gap-2"
+        aria-label="Open Angie AI"
       >
-        <MicrophoneIcon className="h-6 w-6" />
+        <SparklesIcon className="h-6 w-6" />
+        <span>Angie AI</span>
       </button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <div className="fixed inset-0 bg-black/40" onClick={close} />
+          <div className="fixed inset-0 bg-black/60 animate-fade-in" onClick={close} />
 
-          <div className="relative w-full sm:max-w-lg bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-slide-up flex flex-col" style={{ maxHeight: '80vh' }}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-secondary-200 shrink-0">
+          <div className="relative w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-slide-up flex flex-col" style={{ maxHeight: '80vh', background: 'linear-gradient(180deg, #2d1517 0%, #1a0808 50%, #0d0303 100%)' }}>
+            <div className="flex items-center justify-between px-5 py-4 shrink-0 bg-white/10 backdrop-blur-md border-b border-white/10">
               <div className="flex items-center gap-3">
-                <h3 className="text-lg font-semibold text-secondary-900">Voice Assistant</h3>
-                {aiConfigured && <span className="text-[10px] bg-citizen-green/10 text-citizen-green px-1.5 py-0.5 rounded font-medium">AI</span>}
+                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary-500 to-red-600 flex items-center justify-center">
+                  <SparklesIcon className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Angie</h3>
+                  <span className="text-[10px] text-primary-200 font-medium">AI Assistant</span>
+                </div>
               </div>
-              <button onClick={close} className="p-1.5 rounded-lg text-secondary-400 hover:text-secondary-600 hover:bg-secondary-100 transition-colors">
+              <button onClick={close} className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors">
                 <XMarkIcon className="h-5 w-5" />
               </button>
             </div>
@@ -237,11 +244,14 @@ export default function VoiceAssistant() {
             <>
               <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[280px]">
                   {chat.length === 0 && (
-                    <div className="text-center py-8 text-secondary-400 text-sm">
-                      <p className="mb-1">Ask me anything about government schemes,</p>
-                      <p>grievances, documents, or appointments.</p>
+                    <div className="text-center py-12 text-white/50 text-sm">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-red-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-700/40">
+                        <SparklesIcon className="h-8 w-8 text-white" />
+                      </div>
+                      <p className="mb-1 text-white/70 font-medium">How can I help you today?</p>
+                      <p>Ask me about schemes, grievances, appointments & more.</p>
                       {!aiConfigured && (
-                        <p className="text-amber-500 mt-3 text-xs">
+                        <p className="text-amber-300 mt-3 text-xs">
                           Tip: Add VITE_GEMINI_API_KEY to .env for AI-powered answers
                         </p>
                       )}
@@ -249,10 +259,10 @@ export default function VoiceAssistant() {
                   )}
                   {chat.map((msg, i) => (
                     <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                      <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed text-white shadow-md ${
                         msg.role === 'user'
-                          ? 'bg-primary-600 text-white rounded-br-md'
-                          : 'bg-secondary-100 text-secondary-800 rounded-bl-md'
+                          ? 'bg-gradient-to-br from-primary-600 to-red-700 rounded-br-md'
+                          : 'bg-white/10 backdrop-blur-sm rounded-bl-md text-white/90'
                       }`}>
                         <span>{msg.text}</span>
                         {msg.role === 'assistant' && (
@@ -262,7 +272,7 @@ export default function VoiceAssistant() {
                               else { speak(msg.text); }
                             }}
                             className={`ml-2 inline-flex items-center gap-1 text-xs transition-colors align-bottom ${
-                              speaking ? 'text-primary-600' : 'text-secondary-400 hover:text-primary-600'
+                              speaking ? 'text-primary-300' : 'text-white/40 hover:text-primary-300'
                             }`}
                             title={speaking ? 'Stop' : 'Read aloud'}
                           >
@@ -274,7 +284,7 @@ export default function VoiceAssistant() {
                   ))}
                   {processing && (
                     <div className="flex justify-start">
-                      <div className="bg-secondary-100 text-secondary-500 px-4 py-2.5 rounded-2xl rounded-bl-md text-sm">
+                      <div className="bg-white/10 backdrop-blur-sm text-white/70 px-4 py-2.5 rounded-2xl rounded-bl-md text-sm">
                         Thinking<span className="animate-pulse">...</span>
                       </div>
                     </div>
@@ -282,9 +292,9 @@ export default function VoiceAssistant() {
                   <div ref={chatEndRef} />
                 </div>
 
-                <div className="border-t border-secondary-200 p-3 shrink-0 space-y-2">
+                <div className="p-3 shrink-0 space-y-2 bg-white/5 backdrop-blur-sm border-t border-white/10">
                   {!supported ? (
-                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700 text-center">
+                    <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-300 text-center">
                       Voice recognition is not supported in your browser. Please use Chrome or Edge.
                     </div>
                   ) : (
@@ -294,13 +304,13 @@ export default function VoiceAssistant() {
                         disabled={processing}
                         className={`shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-300 ${
                           listening
-                            ? 'bg-red-500 shadow-lg shadow-red-200 animate-pulse'
-                            : 'bg-secondary-200 hover:bg-secondary-300 text-secondary-600'
+                            ? 'bg-gradient-to-br from-primary-500 to-red-600 shadow-lg shadow-red-700/40 animate-pulse'
+                            : 'bg-white/10 hover:bg-white/20 text-white/70'
                         } ${processing ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <MicrophoneIcon className={`h-5 w-5 ${listening ? 'text-white animate-bounce' : ''}`} />
                       </button>
-                      <div className="flex-1 flex items-center gap-2 bg-secondary-50 border border-secondary-200 rounded-xl px-3 py-1.5">
+                      <div className="flex-1 flex items-center gap-2 bg-white/10 border border-white/10 rounded-xl px-3 py-1.5">
                         <input
                           type="text"
                           value={input}
@@ -308,14 +318,14 @@ export default function VoiceAssistant() {
                           onKeyDown={handleKeyDown}
                           placeholder={listening ? 'Listening...' : 'Ask me something...'}
                           disabled={processing}
-                          className="flex-1 bg-transparent text-sm text-secondary-900 placeholder-secondary-400 outline-none border-none"
+                          className="flex-1 bg-transparent text-sm text-white placeholder-white/40 outline-none border-none"
                         />
                         <button
                           onClick={() => { stopAll(); stopListening(); setProcessing(false); }}
                           disabled={!processing && !listening}
                           className={`shrink-0 h-8 w-8 rounded-full flex items-center justify-center transition-colors ${
                             processing || listening
-                              ? 'bg-red-500 text-white hover:bg-red-600'
+                              ? 'bg-red-500/80 text-white hover:bg-red-500'
                               : 'bg-transparent text-transparent pointer-events-none'
                           }`}
                           title="Stop"
@@ -325,7 +335,7 @@ export default function VoiceAssistant() {
                         <button
                           onClick={handleSendText}
                           disabled={!input.trim() || processing}
-                          className="shrink-0 h-8 w-8 rounded-full bg-primary-600 text-white flex items-center justify-center hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-primary-500 to-red-600 text-white flex items-center justify-center hover:from-primary-600 hover:to-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
                         >
                           <PaperAirplaneIcon className="h-4 w-4" />
                         </button>
@@ -334,9 +344,9 @@ export default function VoiceAssistant() {
                   )}
 
                   {transcript && (
-                    <div className="p-2 bg-secondary-50 border border-secondary-200 rounded-lg">
-                      <p className="text-xs text-secondary-400 font-medium">Recognized</p>
-                      <p className="text-sm text-secondary-700">{transcript}</p>
+                    <div className="p-2 bg-white/5 border border-white/10 rounded-lg">
+                      <p className="text-xs text-white/40 font-medium">Recognized</p>
+                      <p className="text-sm text-white/70">{transcript}</p>
                     </div>
                   )}
                 </div>

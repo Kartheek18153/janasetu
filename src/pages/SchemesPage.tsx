@@ -250,6 +250,9 @@ export default function SchemesPage() {
               <AshokaChakra className="w-32 h-32 text-white" />
             </div>
           </div>
+          <div className="absolute right-0 top-0 bottom-0 w-64 opacity-20 pointer-events-none hidden lg:block">
+            <img src="/images (3).jpg" alt="" className="w-full h-full object-cover" />
+          </div>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-center relative">
             <h1 className="text-2xl sm:text-3xl font-bold text-white">
               {t('schemes.profiler.title')}
@@ -276,6 +279,9 @@ export default function SchemesPage() {
           <div className="absolute bottom-5 left-10 opacity-[0.04]">
             <AshokaChakra className="w-24 h-24 text-white" />
           </div>
+        </div>
+        <div className="absolute right-0 top-0 bottom-0 w-48 opacity-15 pointer-events-none hidden lg:block">
+          <img src="/Gemini_Generated_Image_r1pkvfr1pkvfr1pk.png" alt="" className="w-full h-full object-cover" />
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-center relative">
           <h1 className="text-2xl sm:text-3xl font-bold text-white">

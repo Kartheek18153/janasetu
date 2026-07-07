@@ -133,7 +133,7 @@ export const AppService = {
     return profile;
   },
 
-  async register(data: { email: string; password: string; name: string; phone: string }): Promise<UserProfile> {
+  async register(data: { email: string; password: string; name: string; phone?: string }): Promise<UserProfile> {
     const cred = await createUserWithEmailAndPassword(auth, data.email, data.password);
     await updateProfile(cred.user, { displayName: data.name });
 
@@ -141,7 +141,7 @@ export const AppService = {
       uid: cred.user.uid,
       email: data.email,
       name: data.name,
-      phone: data.phone,
+      phone: data.phone || '',
       role: 'citizen',
       createdAt: new Date(),
       updatedAt: new Date(),

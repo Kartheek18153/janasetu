@@ -24,9 +24,14 @@ export default function AccountPage() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-secondary-900">{t('account.title')}</h1>
-        <p className="mt-2 text-secondary-500">{t('account.subtitle')}</p>
+      <div className="mb-8 flex items-start gap-5">
+        <div className="hidden sm:block w-20 h-16 flex-shrink-0 overflow-hidden rounded-xl opacity-60">
+          <img src="/gemini-svg (2).svg" alt="" className="w-full h-full object-contain" />
+        </div>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-secondary-900">{t('account.title')}</h1>
+          <p className="mt-2 text-secondary-500">{t('account.subtitle')}</p>
+        </div>
       </div>
 
       {incomplete && (

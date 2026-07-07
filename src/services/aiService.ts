@@ -28,6 +28,8 @@ export async function askAI(query: string): Promise<string> {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -36,7 +38,9 @@ export async function askAI(query: string): Promise<string> {
           contents: [{ parts: [{ text: query }] }],
           generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
         }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         if (response.status === 429) continue;

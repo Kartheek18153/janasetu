@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="100%">
+  <defs>
+    <!-- Grid Overlay for Technical Mapping Texture -->
+    <pattern id="mapGrid" width="30" height="30" patternUnits="userSpaceOnUse">
+      <circle cx="30" cy="30" r="1" fill="#cbd5e1" opacity="0.6"/>
+    </pattern>
+    <!-- Saffron-to-Green Accent Gradient for Map Nodes -->
+    <linearGradient id="nodeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF9933" />
+      <stop offset="100%" stop-color="#138808" />
+    </linearGradient>
+  </defs>
+
+  <!-- 1. Soft Canvas Base Layer -->
+  <rect width="800" height="500" fill="#f8fafc"/>
+
+  <!-- 2. Technical Dot Grid Layer -->
+  <rect width="800" height="500" fill="url(#mapGrid)"/>
+
+  <!-- 3. Abstract Regional Contour Vector (Simulating geographical regions/wards) -->
+  <g fill="none" stroke="#e2e8f0" stroke-width="1.5">
+    <path d="M 100,100 Q 250,50 400,150 T 700,100" />
+    <path d="M 50,250 Q 300,180 450,320 T 750,280" />
+    <path d="M 120,420 Q 280,350 500,450 T 680,380" opacity="0.5"/>
+  </g>
+
+  <!-- 4. Network Mesh Connecting Administrative Hubs -->
+  <g stroke="#94a3b8" stroke-width="1" stroke-dasharray="4,4" opacity="0.4">
+    <line x1="250" y1="120" x2="380" y2="240" />
+    <line x1="380" y1="240" x2="520" y2="180" />
+    <line x1="380" y1="240" x2="310" y2="380" />
+    <line x1="310" y1="380" x2="580" y2="360" />
+  </g>
+
+  <!-- 5. Status Pins / Active Infrastructure Nodes -->
+  <g>
+    <!-- Active Node 1 (Saffron Hub) -->
+    <circle cx="250" cy="120" r="6" fill="#FF9933" opacity="0.2"/>
+    <circle cx="250" cy="120" r="3" fill="#FF9933"/>
+    
+    <!-- Active Node 2 (Central Secure Hub) -->
+    <circle cx="380" cy="240" r="8" fill="#0A2540" opacity="0.15"/>
+    <circle cx="380" cy="240" r="4" fill="#0A2540"/>
+    
+    <!-- Active Node 3 (Green Resolved Hub) -->
+    <circle cx="520" cy="180" r="6" fill="#138808" opacity="0.2"/>
+    <circle cx="520" cy="180" r="3" fill="#138808"/>
+    
+    <!-- Active Node 4 -->
+    <circle cx="310" cy="380" r="6" fill="#94a3b8" opacity="0.3"/>
+    <circle cx="310" cy="380" r="3" fill="#64748b"/>
+  </g>
+</svg>

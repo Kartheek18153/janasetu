@@ -121,13 +121,18 @@ export default function MyApplicationsPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold font-serif text-secondary-900">
-          {t('schemes.myApplications.title')}
-        </h1>
-        <p className="mt-1 text-secondary-500 text-sm">
-          {t('schemes.myApplications.subtitle')}
-        </p>
+      <div className="mb-8 flex items-start gap-6">
+        <div className="hidden sm:block w-24 h-20 flex-shrink-0 overflow-hidden rounded-xl opacity-70">
+          <img src="/gemini-svg (3).svg" alt="" className="w-full h-full object-contain" />
+        </div>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-secondary-900">
+            {t('schemes.myApplications.title')}
+          </h1>
+          <p className="mt-1 text-secondary-500 text-sm">
+            {t('schemes.myApplications.subtitle')}
+          </p>
+        </div>
       </div>
 
       {applications.length === 0 ? (

@@ -173,6 +173,9 @@ export default function DocumentsPage() {
           <div className="absolute top-5 right-10 opacity-[0.06]">
             <AshokaChakra className="w-32 h-32 text-white" />
           </div>
+          <div className="absolute bottom-5 left-8 w-24 h-24 opacity-[0.08]">
+            <img src="/gemini-svg (2).svg" alt="" className="w-full h-full object-contain" />
+          </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative flex items-center gap-6 justify-center">
           <div className="hidden sm:block w-32 h-24 flex-shrink-0 overflow-hidden rounded-xl opacity-80">
@@ -187,7 +190,7 @@ export default function DocumentsPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
         <div className="absolute -right-8 top-12 w-48 h-36 opacity-[0.06] pointer-events-none hidden lg:block">
-          <img src="/feature-documents.jpg" alt="" className="w-full h-full object-cover rounded-xl" />
+          <img src="/Gemini_Generated_Image_obl5ixobl5ixobl5.png" alt="" className="w-full h-full object-cover rounded-xl" />
         </div>
       {error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{error}</div>

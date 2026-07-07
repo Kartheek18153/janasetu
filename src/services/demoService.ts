@@ -39,7 +39,7 @@ export const DemoService = {
     return user;
   },
 
-  async register(data: { email: string; password: string; name: string; phone: string }): Promise<UserProfile> {
+  async register(data: { email: string; password: string; name: string; phone?: string }): Promise<UserProfile> {
     await delay(800);
     const uid = `citizen-${Date.now()}`;
     const user: UserProfile = {
