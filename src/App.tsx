@@ -56,10 +56,10 @@ function AppRoutes() {
           <ProtectedRoute><AppointmentsPage /></ProtectedRoute>
         } />
         <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
-        <Route path="/schemes" element={<SchemesPage />} />
-        <Route path="/schemes/:id" element={<SchemeDetailPage />} />
-        <Route path="/my-applications" element={<MyApplicationsPage />} />
-        <Route path="/documents" element={<DocumentsPage />} />
+        <Route path="/schemes" element={<ProtectedRoute><SchemesPage /></ProtectedRoute>} />
+        <Route path="/schemes/:id" element={<ProtectedRoute><SchemeDetailPage /></ProtectedRoute>} />
+        <Route path="/my-applications" element={<ProtectedRoute><MyApplicationsPage /></ProtectedRoute>} />
+        <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
 
         {/* Admin Routes */}
         <Route path="/admin" element={

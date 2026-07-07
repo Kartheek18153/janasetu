@@ -80,6 +80,7 @@
   /* Animations */
   --animate-slide-up: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   --animate-fade-in: fade-in 0.25s ease-out;
+  --animate-page-enter: page-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes slide-up {
@@ -96,6 +97,17 @@
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @layer base {
