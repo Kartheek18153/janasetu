@@ -120,12 +120,14 @@ export default function Navbar() {
               </div>
 
               <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setSearchOpen(!searchOpen)}
-                  className="p-2 rounded-lg text-secondary-400 hover:text-secondary-600 hover:bg-secondary-100 transition-colors"
-                >
-                  <MagnifyingGlassIcon className="h-5 w-5" />
-                </button>
+                {!isAuthPage && (
+                  <button
+                    onClick={() => setSearchOpen(!searchOpen)}
+                    className="p-2 rounded-lg text-secondary-400 hover:text-secondary-600 hover:bg-secondary-100 transition-colors"
+                  >
+                    <MagnifyingGlassIcon className="h-5 w-5" />
+                  </button>
+                )}
 
                 {isAuthenticated ? (
                   <>
