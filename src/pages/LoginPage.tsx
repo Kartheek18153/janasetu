@@ -116,7 +116,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center px-4 py-12">
+    <div className="relative h-full flex items-center justify-center px-4 py-4">
       {/* Full-window background */}
       <div className="fixed inset-0 pointer-events-none" style={{ backgroundColor: '#fef0db' }} />
       {/* Texture overlay */}

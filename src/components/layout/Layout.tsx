@@ -16,6 +16,7 @@ export default function Layout() {
   const { isAdmin, isAuthenticated, isVerified, user } = useAuth();
   const location = useLocation();
   const isHome = location.pathname === '/';
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
   const [sendingCode, setSendingCode] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
 
@@ -43,26 +44,26 @@ export default function Layout() {
       </div>
 
       {/* Government of India Header Bar */}
-      <div className="bg-[#1a237e] text-white text-xs shrink-0">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-8">
-          <div className="flex items-center gap-3">
-            <span className="hidden sm:inline font-medium">GOVERNMENT OF INDIA</span>
-            <span className="hidden sm:inline text-white/40">|</span>
-            <span className="text-white/80">JanaSetu — Citizen Grievance Portal</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link to="/schemes" className="text-white/70 hover:text-white transition-colors">Schemes</Link>
-            <span className="text-white/30">|</span>
-            <Link to="/documents" className="text-white/70 hover:text-white transition-colors">Documents</Link>
-            <span className="text-white/30">|</span>
-            <a href="https://www.india.gov.in" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white transition-colors">India Portal</a>
-            <span className="text-white/30">|</span>
-            <AccessibilityBar />
+      <div key={location.pathname} className="animate-page-enter flex flex-col flex-1">
+        <div className="bg-[#1a237e] text-white text-xs shrink-0">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-8">
+            <div className="flex items-center gap-3">
+              <span className="hidden sm:inline font-medium">GOVERNMENT OF INDIA</span>
+              <span className="hidden sm:inline text-white/40">|</span>
+              <span className="text-white/80">JanaSetu — Citizen Grievance Portal</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Link to="/schemes" className="text-white/70 hover:text-white transition-colors">Schemes</Link>
+              <span className="text-white/30">|</span>
+              <Link to="/documents" className="text-white/70 hover:text-white transition-colors">Documents</Link>
+              <span className="text-white/30">|</span>
+              <a href="https://www.india.gov.in" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white transition-colors">India Portal</a>
+              <span className="text-white/30">|</span>
+              <AccessibilityBar />
+            </div>
           </div>
         </div>
-      </div>
 
-      <div key={location.pathname} className="animate-page-enter flex flex-col flex-1">
         <Navbar />
 
         {isAuthenticated && !isVerified && !isAdmin && (
@@ -98,8 +99,10 @@ export default function Layout() {
 
         <div className="flex-1 flex relative z-10">
           {isAdmin && <Sidebar />}
-          <main className={`flex-1 ${isAdmin ? 'lg:pl-64' : ''}`}>
+          <main className={`flex-1 ${isAdmin ? 'lg:pl-64' : ''} ${isAuthPage ? 'overflow-hidden' : ''}`}>
             {isHome ? (
+              <Outlet />
+            ) : isAuthPage ? (
               <Outlet />
             ) : (
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

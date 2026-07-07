@@ -82,7 +82,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center px-4 py-12">
+    <div className="relative h-full flex items-center justify-center px-4 py-4">
       {/* Full-window background */}
       <div className="fixed inset-0 pointer-events-none" style={{ backgroundColor: '#fef0db' }} />
       {/* Texture overlay */}
@@ -94,19 +94,8 @@ export default function RegisterPage() {
         <img src="/logo.png" alt="" className="w-[35vw] h-auto select-none" />
       </div>
       <style>{`html, body { background-color: #fef0db !important; }`}</style>
-      <div className="relative w-full max-w-md z-10">
-        <div className="text-center mb-6">
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg ring-2 ring-primary-100">
-              <img src="/logo.png" alt="" className="w-full h-full object-cover" />
-            </div>
-            <span className="text-3xl font-bold text-primary-700">JanaSetu</span>
-          </div>
-        </div>
-        <div className="absolute -top-20 -right-20 w-40 h-40 opacity-[0.08] pointer-events-none hidden sm:block">
-          <img src="/Gemini_Generated_Image_obl5ixobl5ixobl5.png" alt="" className="w-full h-full object-cover rounded-2xl rotate-12" />
-        </div>
-        <div className="card">
+        <div className="relative w-full max-w-md z-10">
+          <div className="card">
           <div className="card-body p-8">
             <div className="text-center mb-6">
               <div className="h-12 w-12 rounded-xl overflow-hidden mx-auto mb-4 shadow-lg shadow-primary-300/50 ring-4 ring-primary-100">
