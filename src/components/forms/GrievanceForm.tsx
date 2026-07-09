@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../i18n';
-import AppService from '../../services/appService';
-
+import { GrievanceService, uploadFiles, formatFileSize, isValidFileType, isValidFileSize } from '../../services';
 
 const categories = [
   { value: 'water_supply', labelKey: 'fileGrievance.categories.water_supply', icon: 'Water' },
@@ -45,6 +44,8 @@ export default function GrievanceForm({ onSuccess }: GrievanceFormProps) {
     location: { address: '', landmark: '', city: '', wardNo: '', district: '', state: '', pincode: '' },
   });
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   const updateField = (field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -56,6 +57,27 @@ export default function GrievanceForm({ onSuccess }: GrievanceFormProps) {
       fields.forEach(f => (next[f] = true));
       return next;
     });
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const validFiles = files.filter(f => {
+      if (!isValidFileType(f, ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])) {
+        setError(`${f.name}: Invalid file type. Only JPG, PNG, WebP, PDF allowed.`);
+        return false;
+      }
+      if (!isValidFileSize(f, 10)) {
+        setError(`${f.name}: File size exceeds 10MB limit.`);
+        return false;
+      }
+      return true;
+    });
+    setAttachments(prev => [...prev, ...validFiles]);
+    e.target.value = '';
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
   const canProceed = (s: number) => {
@@ -87,8 +109,17 @@ export default function GrievanceForm({ onSuccess }: GrievanceFormProps) {
     }
     setSubmitting(true);
     setError('');
+    setUploadProgress(0);
     try {
-      const result = await AppService.createGrievance({
+      // Upload attachments if any
+      let uploadedAttachments: { name: string; url: string; type: string; size: number }[] = [];
+      if (attachments.length > 0) {
+        const results = await uploadFiles(attachments, user.uid, { folder: 'grievances' });
+        uploadedAttachments = results.map(r => ({ name: r.name, url: r.url, type: r.type, size: r.size }));
+      }
+      setUploadProgress(100);
+
+      const result = await GrievanceService.createGrievance({
         citizenId: user.uid,
         citizenName: user.name,
         citizenPhone: user.phone || '',
@@ -99,12 +130,14 @@ export default function GrievanceForm({ onSuccess }: GrievanceFormProps) {
         priority: form.priority,
         department: form.department,
         location: form.location,
+        attachments: uploadedAttachments,
       });
       onSuccess(result.trackingId);
     } catch (err: any) {
       setError(err.message || t('common.error'));
     } finally {
       setSubmitting(false);
+      setUploadProgress(null);
     }
   };
 
@@ -322,6 +355,47 @@ export default function GrievanceForm({ onSuccess }: GrievanceFormProps) {
             </div>
           </div>
 
+          {/* Attachments */}
+          <div>
+            <label className="label text-base">Attachments (Optional)</label>
+            <p className="text-xs text-secondary-400 mb-2">Add photos or documents (max 10MB each, JPG/PNG/WebP/PDF)</p>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              multiple
+              onChange={handleFileSelect}
+              disabled={submitting}
+              className="input file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+            />
+            {attachments.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {attachments.map((file, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-secondary-50 rounded-lg border border-secondary-200">
+                    <div className="flex items-center gap-3">
+                      <svg className="h-5 w-5 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-medium text-secondary-900 truncate max-w-xs">{file.name}</p>
+                        <p className="text-xs text-secondary-500">{formatFileSize(file.size)}</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(index)}
+                      className="p-1 text-secondary-400 hover:text-red-500 transition-colors"
+                      disabled={submitting}
+                    >
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="flex justify-between pt-2">
             <button onClick={() => setStep(1)} className="btn-secondary px-6">Back</button>
             <button onClick={() => handleNext(2)} className="btn-primary px-6">
@@ -370,6 +444,25 @@ export default function GrievanceForm({ onSuccess }: GrievanceFormProps) {
               <p className="text-xs text-secondary-400 font-medium uppercase tracking-wide mb-1">Description</p>
               <p className="text-sm text-secondary-700 leading-relaxed">{form.description}</p>
             </div>
+
+            {attachments.length > 0 && (
+              <div className="pt-3 border-t border-secondary-200">
+                <p className="text-xs text-secondary-400 font-medium uppercase tracking-wide mb-1">Attachments</p>
+                <div className="space-y-1">
+                  {attachments.map((file, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-white rounded border border-secondary-100">
+                      <div className="flex items-center gap-2">
+                        <svg className="h-4 w-4 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-sm text-secondary-700">{file.name}</span>
+                      </div>
+                      <span className="text-xs text-secondary-500">{formatFileSize(file.size)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-between">

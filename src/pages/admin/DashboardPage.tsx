@@ -3,12 +3,10 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from '../../i18n';
 import { onSnapshot, collection } from 'firebase/firestore';
 import { db } from '../../firebase/config';
-import AppService from '../../services/appService';
-import Badge from '../../components/ui/Badge';
+import { grievanceFromDoc } from '../../services/grievanceService';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import {
   DocumentTextIcon, CheckCircleIcon, ClockIcon, XCircleIcon,
-  ArrowTrendingUpIcon, UserGroupIcon,
 } from '@heroicons/react/24/outline';
 
 interface DashboardStats {
@@ -23,7 +21,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'grievances'), (snap) => {
-      const all = snap.docs.map(d => d.data() as any);
+      const all = snap.docs.map(d => grievanceFromDoc(d.id, d.data()));
       const total = all.length;
       const pendingCount = all.filter((g: any) => g.status === 'submitted' || g.status === 'under_review').length;
       const inProgressCount = all.filter((g: any) => g.status === 'assigned' || g.status === 'in_progress').length;
@@ -54,8 +52,8 @@ export default function AdminDashboard() {
   const quickActions = [
     { label: 'View All Grievances', href: '/admin/grievances', icon: DocumentTextIcon, color: 'from-admin-500 to-admin-600' },
     { label: 'Manage Announcements', href: '/admin/announcements', icon: ClockIcon, color: 'from-admin-orange to-admin-orange' },
-    { label: 'Appointments', href: '/admin/appointments', icon: UserGroupIcon, color: 'from-admin-600 to-admin-700' },
-    { label: 'Manage Officers', href: '/admin/officers', icon: UserGroupIcon, color: 'from-admin-500 to-admin-600' },
+    { label: 'Appointments', href: '/admin/appointments', icon: ClockIcon, color: 'from-admin-600 to-admin-700' },
+    { label: 'Manage Officers', href: '/admin/officers', icon: ClockIcon, color: 'from-admin-500 to-admin-600' },
   ];
 
   return (

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../i18n';
-import AppService from '../services/appService';
+import { AnnouncementService } from '../services';
 import Badge from '../components/ui/Badge';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
@@ -17,7 +17,7 @@ export default function AnnouncementsPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await AppService.getAnnouncements();
+        const data = await AnnouncementService.getAnnouncements();
         setAnnouncements(data);
       } catch {} finally {
         setLoading(false);
@@ -30,7 +30,7 @@ export default function AnnouncementsPage() {
   const types = ['all', ...new Set(announcements.map(a => a.type))];
 
   return (
-    <div>
+    <div className="auto-reveal-children">
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-secondary-900">{t('announcements.title')}</h1>
         <p className="mt-2 text-secondary-500">{t('announcements.subtitle')}</p>

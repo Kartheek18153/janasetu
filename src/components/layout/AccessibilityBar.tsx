@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
-import AppService from '../../services/appService';
+import { AuthService } from '../../services';
 import type { SupportedLanguage } from '../../types';
 
 type FontSize = 'sm' | 'md' | 'lg';
@@ -36,7 +36,7 @@ export default function AccessibilityBar() {
   const handleLangToggle = async () => {
     const newLang: SupportedLanguage = lang === 'en' ? 'hi' : 'en';
     if (user) {
-      await AppService.updateUserProfile(user.uid, { language: newLang } as any);
+      await AuthService.updateUserProfile(user.uid, { language: newLang });
       await refreshProfile();
     } else {
       localStorage.setItem('gigw-lang', newLang);

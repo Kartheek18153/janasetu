@@ -1,8 +1,6 @@
-import { db } from '../firebase/config';
-import { collection, addDoc, getDocs, query, where, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { db, auth } from '../firebase/config';
+import { collection, addDoc, getDocs, query, where, serverTimestamp, deleteDoc, setDoc, doc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
-import { auth } from '../firebase/config';
-import { setDoc, doc } from 'firebase/firestore';
 
 const SEED_KEY = 'janasetu_seeded_v3';
 
@@ -46,6 +44,7 @@ async function ensureUserDoc(email: string, password: string, profile: any) {
 }
 
 export async function seedFirebase() {
+  if (!db) return; // Firebase not configured
   localStorage.removeItem('janasetu_seeded_v1');
   const seeded = localStorage.getItem(SEED_KEY);
   if (seeded) return;
@@ -89,17 +88,17 @@ export async function seedFirebase() {
 
     localStorage.setItem(SEED_KEY, 'true');
     await signOut(auth);
-  } catch (err) {
-    console.error('Seed error:', err);
+  } catch {
+    // Seed failure is non-fatal
   }
 }
 
 export async function clearUsers() {
+  if (!db) return;
   const snap = await getDocs(collection(db, 'users'));
   const promises = snap.docs.map(d => deleteDoc(doc(db, 'users', d.id)));
   await Promise.all(promises);
   localStorage.removeItem(SEED_KEY);
-  console.log(`Deleted ${snap.size} user documents`);
 }
 
 export default seedFirebase;

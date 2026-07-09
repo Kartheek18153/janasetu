@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SchemeApplication, ApplicationStatus } from '../types';
-import AppService from '../services/appService';
+import { SchemeService } from '../services';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../i18n';
 import {
@@ -99,7 +99,7 @@ export default function MyApplicationsPage() {
 
     const fetchApps = async () => {
       try {
-        const apps = await AppService.getUserSchemeApplications(user.uid);
+        const apps = await SchemeService.getUserSchemeApplications(user.uid);
         setApplications(apps);
       } catch {
         setApplications([]);
@@ -120,7 +120,7 @@ export default function MyApplicationsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 auto-reveal-children">
       <div className="mb-8 flex items-start gap-6">
         <div className="hidden sm:block w-24 h-20 flex-shrink-0 overflow-hidden rounded-xl opacity-70">
           <img src="/gemini-svg (3).svg" alt="" className="w-full h-full object-contain" />

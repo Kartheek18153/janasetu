@@ -5,7 +5,7 @@ import { Bars3Icon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/o
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../i18n';
 import type { SupportedLanguage } from '../../types';
-import AppService from '../../services/appService';
+import { AuthService } from '../../services';
 
 const languages: { code: SupportedLanguage; label: string; native: string }[] = [
   { code: 'en', label: 'English', native: 'English' },
@@ -58,7 +58,7 @@ export default function Navbar() {
   }, []);
 
   const currentLang = (user?.language || 'en') as SupportedLanguage;
-  const activeLang = languages.find(l => l.code === currentLang) || languages[0];
+  const activeLang = languages.find(l => l.code === currentLang)!;
 
   const handleLogout = async () => {
     await logout();
@@ -67,7 +67,7 @@ export default function Navbar() {
 
   const switchLanguage = async (code: SupportedLanguage) => {
     if (user) {
-      await AppService.updateUserProfile(user.uid, { language: code } as any);
+      await AuthService.updateUserProfile(user.uid, { language: code });
       await refreshProfile();
     }
     setLangOpen(false);
@@ -99,9 +99,11 @@ export default function Navbar() {
       ];
 
   return (
-    <Disclosure as="nav" className={`sticky top-0 z-40 bg-white border-b transition-all duration-300 ${
-      scrolled ? 'border-secondary-200 shadow-md' : 'border-secondary-100'
-    }`}>
+    <Disclosure as="nav" className={`sticky top-0 z-40 transition-all duration-300 ${
+      scrolled
+        ? 'bg-white/95 backdrop-blur-md border-secondary-200 shadow-sm'
+        : 'bg-white border-secondary-100'
+    } border-b`}>
       {({ open }) => (
         <>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -230,51 +232,72 @@ export default function Navbar() {
           </div>
 
           {/* Search Bar */}
-          {searchOpen && (
-            <div className="border-t border-secondary-100 bg-secondary-50 py-3 px-4">
+          <Transition
+            show={searchOpen}
+            enter="transition-all duration-300 ease-out"
+            enterFrom="max-h-0 opacity-0"
+            enterTo="max-h-20 opacity-100"
+            leave="transition-all duration-200 ease-in"
+            leaveFrom="max-h-20 opacity-100"
+            leaveTo="max-h-0 opacity-0"
+          >
+            <div className="border-t border-secondary-100 bg-secondary-50/80 backdrop-blur-sm py-3 px-4 overflow-hidden">
               <form onSubmit={handleSearch} className="max-w-3xl mx-auto flex gap-2">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Search schemes, services, information..."
-                  className="flex-1 px-4 py-2 rounded-lg border border-secondary-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9933]/30 focus:border-[#FF9933]"
-                  autoFocus
-                />
-                <button type="submit" className="px-4 py-2 bg-[#FF9933] text-white rounded-lg text-sm font-medium hover:bg-[#ea580c] transition-colors">
+                <div className="relative flex-1">
+                  <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-secondary-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Search schemes, services, information..."
+                    className="w-full pl-9 pr-4 py-2 rounded-lg border border-secondary-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9933]/30 focus:border-[#FF9933] transition-shadow"
+                    autoFocus
+                  />
+                </div>
+                <button type="submit" className="px-5 py-2 bg-[#FF9933] text-white rounded-lg text-sm font-medium hover:bg-[#ea580c] transition-all hover:shadow-md active:scale-95">
                   Search
                 </button>
               </form>
             </div>
-          )}
+          </Transition>
 
-          <Disclosure.Panel className="md:hidden border-t border-secondary-200">
-            <div className="px-4 py-3 space-y-1">
-              {!isAuthPage && navItems.map((item) => (
-                <Disclosure.Button
-                  key={item.name}
-                  as={Link}
-                  to={item.href}
-                  className={`block px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    location.pathname === item.href
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-secondary-600 hover:text-secondary-900 hover:bg-secondary-100'
-                  }`}
-                >
-                  {item.name}
-                </Disclosure.Button>
-              ))}
-              {!isAuthPage && (
-                <Disclosure.Button
-                  as={Link}
-                  to="/account"
-                  className="block px-3 py-2 rounded-lg text-sm font-medium text-secondary-600 hover:text-secondary-900 hover:bg-secondary-100 transition-colors"
-                >
-                  My Account
-                </Disclosure.Button>
-              )}
-            </div>
-          </Disclosure.Panel>
+          <Transition
+            show={open}
+            enter="transition-all duration-300 ease-out"
+            enterFrom="max-h-0 opacity-0"
+            enterTo="max-h-80 opacity-100"
+            leave="transition-all duration-200 ease-in"
+            leaveFrom="max-h-80 opacity-100"
+            leaveTo="max-h-0 opacity-0"
+          >
+            <Disclosure.Panel className="md:hidden border-t border-secondary-200 overflow-hidden">
+              <div className="px-4 py-3 space-y-1 bg-white">
+                {!isAuthPage && navItems.map((item) => (
+                  <Disclosure.Button
+                    key={item.name}
+                    as={Link}
+                    to={item.href}
+                    className={`block px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      location.pathname === item.href
+                        ? 'bg-blue-50 text-blue-700'
+                        : 'text-secondary-600 hover:text-secondary-900 hover:bg-secondary-100'
+                    }`}
+                  >
+                    {item.name}
+                  </Disclosure.Button>
+                ))}
+                {!isAuthPage && (
+                  <Disclosure.Button
+                    as={Link}
+                    to="/account"
+                    className="block px-3 py-2.5 rounded-lg text-sm font-medium text-secondary-600 hover:text-secondary-900 hover:bg-secondary-100 transition-colors"
+                  >
+                    My Account
+                  </Disclosure.Button>
+                )}
+              </div>
+            </Disclosure.Panel>
+          </Transition>
         </>
       )}
     </Disclosure>

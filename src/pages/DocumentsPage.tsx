@@ -1,97 +1,61 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../i18n';
 import { useAuth } from '../context/AuthContext';
-import { storage } from '../firebase/config';
-import { uploadDocument, getUserDocuments, deleteDocument } from '../services/storageService';
+import { uploadLocalDocument, getLocalUserDocuments, deleteLocalDocument } from '../services/localDocService';
 import {
-  ArrowUpTrayIcon, DocumentIcon, TrashIcon, EyeIcon,
+  ArrowUpTrayIcon, TrashIcon, EyeIcon, DocumentTextIcon,
+  IdentificationIcon, CreditCardIcon, GlobeAltIcon, AcademicCapIcon,
+  CurrencyRupeeIcon, ClipboardDocumentListIcon,
 } from '@heroicons/react/24/outline';
 
-function AshokaChakra({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="50" cy="50" r="46" stroke="currentColor" strokeWidth="2" fill="none" />
-      <circle cx="50" cy="50" r="38" stroke="currentColor" strokeWidth="1.5" fill="none" />
-      <circle cx="50" cy="50" r="30" stroke="currentColor" strokeWidth="1.5" fill="none" />
-      <circle cx="50" cy="50" r="22" stroke="currentColor" strokeWidth="1.5" fill="none" />
-      <circle cx="50" cy="50" r="6" fill="currentColor" />
-      {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((angle) => (
-        <line key={angle} x1="50" y1="10" x2="50" y2="18" stroke="currentColor" strokeWidth="2"
-          transform={`rotate(${angle} 50 50)`} />
-      ))}
-    </svg>
-  );
-}
-
-interface DocItem {
+interface LocalDoc {
   id: string;
   userId: string;
   docType: string;
   fileName: string;
-  url: string;
-  uploadedAt: any;
+  dataUrl: string;
+  uploadedAt: number;
 }
 
-const docGradients: Record<string, string> = {
-  aadhaar: 'from-[#FF9933] to-[#ea580c]',
-  pan: 'from-[#1a237e] to-[#283593]',
-  voterId: 'from-[#138808] to-[#15803d]',
-  drivingLicense: 'from-[#1a237e] to-[#3949ab]',
-  passport: 'from-[#1a237e] to-[#5c6bc0]',
-  birthCertificate: 'from-[#138808] to-[#16a34a]',
-  academic: 'from-[#1a237e] to-[#3f51b5]',
-  income: 'from-[#FF9933] to-[#f97316]',
-  caste: 'from-[#138808] to-[#22c55e]',
-  rationCard: 'from-[#138808] to-[#4ade80]',
-  other: 'from-[#1a237e] to-[#64748b]',
+const docMeta: Record<string, { label: string; icon: typeof DocumentTextIcon; color: string; desc: string }> = {
+  aadhaar:         { label: 'documents.types.aadhaar',         icon: IdentificationIcon,       color: '#FF9933', desc: '12-digit unique identity' },
+  pan:             { label: 'documents.types.pan',             icon: CreditCardIcon,           color: '#1a237e', desc: 'Permanent Account Number' },
+  voterId:         { label: 'documents.types.voterId',         icon: DocumentTextIcon,         color: '#138808', desc: 'Voter identification card' },
+  drivingLicense:  { label: 'documents.types.drivingLicense',  icon: CreditCardIcon,           color: '#1a237e', desc: 'Driving license document' },
+  passport:        { label: 'documents.types.passport',        icon: GlobeAltIcon,             color: '#475569', desc: 'International travel document' },
+  birthCertificate:{ label: 'documents.types.birthCertificate',icon: DocumentTextIcon,         color: '#138808', desc: 'Certificate of birth' },
+  academic:        { label: 'documents.types.academic',        icon: AcademicCapIcon,          color: '#1a237e', desc: 'Educational certificates' },
+  income:          { label: 'documents.types.income',          icon: CurrencyRupeeIcon,        color: '#ea580c', desc: 'Income proof documents' },
+  caste:           { label: 'documents.types.caste',           icon: ClipboardDocumentListIcon,color: '#138808', desc: 'Caste certificate' },
+  rationCard:      { label: 'documents.types.rationCard',      icon: CreditCardIcon,           color: '#15803d', desc: 'Food security card' },
+  other:           { label: 'documents.types.other',           icon: DocumentTextIcon,         color: '#64748b', desc: 'Other official documents' },
 };
 
-const docIcons: Record<string, string> = {
-  aadhaar: '🆔',
-  pan: '💳',
-  voterId: '🗳️',
-  drivingLicense: '🚗',
-  passport: '🛂',
-  birthCertificate: '👶',
-  academic: '🎓',
-  income: '💰',
-  caste: '📋',
-  rationCard: '🪪',
-  other: '📄',
-};
-
-const documentTypes = Object.keys(docGradients).map(key => ({
-  key,
-  label: `documents.types.${key}` as const,
-  icon: docIcons[key],
+const documentTypes = Object.entries(docMeta).map(([key, meta]) => ({
+  key, label: meta.label, icon: meta.icon, color: meta.color, desc: meta.desc,
 }));
 
 export default function DocumentsPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const [docs, setDocs] = useState<DocItem[]>([]);
+  const [docs, setDocs] = useState<LocalDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<string | null>(null);
   const [error, setError] = useState('');
 
-  const storageAvailable = !!storage;
-
   useEffect(() => {
-    if (user && storageAvailable) {
-      loadDocuments();
-    } else {
-      setLoading(false);
-    }
+    if (user) loadDocs();
+    else setLoading(false);
   }, [user]);
 
-  const loadDocuments = async () => {
+  const loadDocs = async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const items = await getUserDocuments(user.uid);
-      setDocs(items as DocItem[]);
-    } catch (err: any) {
-      setError(err.message || t('common.error'));
+      const items = await getLocalUserDocuments(user.uid);
+      setDocs(items);
+    } catch {
+      setError('Failed to load documents');
     } finally {
       setLoading(false);
     }
@@ -106,19 +70,17 @@ export default function DocumentsPage() {
     input.onchange = async (e: any) => {
       const file = e.target?.files?.[0] as File | undefined;
       if (!file || !user) return;
-
       if (file.size > 5 * 1024 * 1024) {
-        setError(t('documents.sizeError'));
+        setError('File size must be under 5MB');
         return;
       }
-
       setUploading(docType);
       setError('');
       try {
-        await uploadDocument(user.uid, docType, file);
-        await loadDocuments();
-      } catch (err: any) {
-        setError(err.message || t('common.error'));
+        await uploadLocalDocument(user.uid, docType, file);
+        await loadDocs();
+      } catch {
+        setError('Upload failed');
       } finally {
         setUploading(null);
       }
@@ -126,154 +88,148 @@ export default function DocumentsPage() {
     input.click();
   };
 
-  const handleDelete = async (doc: DocItem) => {
-    if (!user) return;
-    if (!window.confirm(t('documents.deleteConfirm'))) return;
-
+  const handleDelete = async (doc: LocalDoc) => {
+    if (!window.confirm('Delete this document?')) return;
     try {
-      await deleteDocument(doc.id, `documents/${user.uid}/${doc.docType}/${doc.fileName}`);
-      await loadDocuments();
-    } catch (err: any) {
-      setError(err.message || t('common.error'));
+      await deleteLocalDocument(doc.id);
+      await loadDocs();
+    } catch {
+      setError('Delete failed');
     }
   };
 
-  if (!storageAvailable) {
-    return (
-      <div className="relative">
-        <div className="bg-gradient-to-r from-primary-600 via-primary-700 to-primary-900 relative overflow-hidden">
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-5 right-10 opacity-[0.06]">
-              <AshokaChakra className="w-32 h-32 text-white" />
-            </div>
-          </div>
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative flex items-center gap-6 justify-center">
-            <div className="hidden sm:block w-32 h-24 flex-shrink-0 overflow-hidden rounded-xl opacity-80">
-              <img src="/document-shield.svg" alt="" className="w-full h-full object-contain" />
-            </div>
-            <div className="text-center sm:text-left">
-              <h1 className="text-2xl sm:text-3xl font-bold text-white">{t('documents.title')}</h1>
-              <p className="mt-2 text-primary-100/80 text-sm">{t('documents.subtitle')}</p>
-            </div>
-          </div>
-        </div>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="p-6 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
-            {t('documents.storageNotConfigured')}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="relative">
-      <div className="bg-gradient-to-r from-primary-600 via-primary-700 to-primary-900 relative overflow-hidden">
+    <div className="auto-reveal-children">
+
+      <div className="bg-gradient-to-b from-secondary-800 to-secondary-900 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-5 right-10 opacity-[0.06]">
-            <AshokaChakra className="w-32 h-32 text-white" />
-          </div>
-          <div className="absolute bottom-5 left-8 w-24 h-24 opacity-[0.08]">
-            <img src="/gemini-svg (2).svg" alt="" className="w-full h-full object-contain" />
-          </div>
+          <div className="absolute -top-20 -right-20 w-60 h-60 bg-white/5 rounded-full blur-3xl" />
+          <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-white/[0.03] rounded-full blur-3xl" />
         </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative flex items-center gap-6 justify-center">
-          <div className="hidden sm:block w-32 h-24 flex-shrink-0 overflow-hidden rounded-xl opacity-80">
-            <img src="/document-shield.svg" alt="" className="w-full h-full object-contain" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative flex items-center gap-6">
+          <div className="hidden sm:block w-14 h-14 flex-shrink-0 rounded-2xl bg-white/10 flex items-center justify-center">
+            <DocumentTextIcon className="h-7 w-7 text-white/70" />
           </div>
-          <div className="text-center sm:text-left">
+          <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-white">{t('documents.title')}</h1>
-            <p className="mt-2 text-primary-100/80 text-sm">{t('documents.subtitle')}</p>
+            <p className="mt-1.5 text-secondary-400 text-sm">{t('documents.subtitle')}</p>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
-        <div className="absolute -right-8 top-12 w-48 h-36 opacity-[0.06] pointer-events-none hidden lg:block">
-          <img src="/Gemini_Generated_Image_obl5ixobl5ixobl5.png" alt="" className="w-full h-full object-cover rounded-xl" />
-        </div>
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{error}</div>
-      )}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-      {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600" />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {documentTypes.map((dt) => {
-            const doc = getDocForType(dt.key);
-            const isUploading = uploading === dt.key;
-            const gradient = docGradients[dt.key] || 'from-secondary-500 to-secondary-600';
+        {!user && (
+          <div className="mb-6 p-5 bg-amber-50/80 border border-amber-200 rounded-xl text-sm text-amber-700 text-center">
+            Please sign in to upload and manage your documents.
+          </div>
+        )}
 
-            return (
-              <div key={dt.key} className="card hover:shadow-md transition-shadow duration-200 overflow-hidden">
-                <div className={`h-12 bg-gradient-to-r ${gradient} flex items-center px-4 relative`}>
-                  <div className="absolute inset-0 opacity-[0.06]">
-                    <AshokaChakra className="w-full h-full text-white" />
-                  </div>
-                  <div className="relative flex items-center gap-2">
-                    <span className="text-xl">{dt.icon}</span>
-                    <h3 className="text-sm font-bold text-white truncate">{t(dt.label)}</h3>
-                  </div>
-                  <div className="ml-auto relative">
-                    <span className={`inline-block w-2 h-2 rounded-full ${doc ? 'bg-green-400' : 'bg-white/40'}`} />
-                  </div>
-                </div>
-                <div className="card-body">
-                  <p className={`text-xs font-medium mb-3 ${doc ? 'text-emerald-600' : 'text-secondary-400'}`}>
-                    {doc ? t('documents.uploaded') : t('documents.notUploaded')}
-                  </p>
+        {error && (
+          <div className="mb-6 p-4 bg-red-50/80 border border-red-200 rounded-xl text-sm text-red-700 animate-fade-in">{error}</div>
+        )}
 
-                  {doc && (
-                    <p className="text-xs text-secondary-400 mb-3">
-                      {t('documents.uploadedOn')}: {new Date(doc.uploadedAt?.toDate?.() || doc.uploadedAt).toLocaleDateString('en-IN')}
-                    </p>
-                  )}
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-secondary-100 border-t-primary-500" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {documentTypes.map((dt) => {
+              const doc = getDocForType(dt.key);
+              const isUploading = uploading === dt.key;
+              const Icon = dt.icon;
 
-                  <div className="flex gap-2">
-                    {doc ? (
-                      <>
-                        <a
-                          href={doc.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors"
+              return (
+                <div
+                  key={dt.key}
+                  className="bg-white border border-secondary-200 rounded-xl overflow-hidden hover:shadow-lg hover:border-secondary-300 transition-all duration-300"
+                >
+                  <div className="h-1" style={{ backgroundColor: dt.color }} />
+
+                  <div className="p-5">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                          style={{ backgroundColor: dt.color + '12' }}
                         >
-                          <EyeIcon className="h-4 w-4" />
-                          {t('documents.view')}
-                        </a>
-                        <button
-                          onClick={() => handleDelete(doc)}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                          {t('documents.delete')}
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => handleUpload(dt.key)}
-                        disabled={isUploading}
-                        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold bg-primary-600 text-white hover:bg-primary-700 transition-colors disabled:opacity-50"
-                      >
-                        {isUploading ? (
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                        ) : (
-                          <ArrowUpTrayIcon className="h-4 w-4" />
-                        )}
-                        {isUploading ? t('documents.uploading') : t('documents.upload')}
-                      </button>
+                          <Icon className="h-5 w-5" style={{ color: dt.color }} />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-semibold text-secondary-900">{t(dt.label)}</h3>
+                          <p className={`text-xs mt-0.5 ${doc ? 'text-emerald-600 font-medium' : 'text-secondary-400'}`}>
+                            {doc ? 'Uploaded' : dt.desc}
+                          </p>
+                        </div>
+                      </div>
+                      {doc && (
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-200 shrink-0" />
+                      )}
+                    </div>
+
+                    {doc && (
+                      <p className="text-xs text-secondary-400 mb-4 flex items-center gap-1.5">
+                        <span className="inline-block w-1 h-1 rounded-full bg-secondary-300" />
+                        {new Date(doc.uploadedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {' \u2022 '}
+                        {doc.fileName}
+                      </p>
                     )}
+
+                    <div className="flex gap-2.5">
+                      {doc ? (
+                        <>
+                          <a
+                            href={doc.dataUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium bg-secondary-50 text-secondary-700 hover:bg-secondary-100 hover:text-secondary-900 transition-all"
+                          >
+                            <EyeIcon className="h-3.5 w-3.5" />
+                            View
+                          </a>
+                          <button
+                            onClick={() => handleDelete(doc)}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 transition-all"
+                          >
+                            <TrashIcon className="h-3.5 w-3.5" />
+                            Delete
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => handleUpload(dt.key)}
+                          disabled={isUploading || !user}
+                          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-semibold text-white transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ backgroundColor: dt.color }}
+                        >
+                          {isUploading ? (
+                            <>
+                              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <ArrowUpTrayIcon className="h-3.5 w-3.5" />
+                              Upload
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
+              );
+            })}
+          </div>
+        )}
+
+        <p className="text-center text-xs text-secondary-400 mt-8">
+          Documents are stored locally in your browser using IndexedDB. No external storage costs.
+        </p>
+      </div>
+
     </div>
   );
 }

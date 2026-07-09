@@ -1,15 +1,13 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import AppService from '../services/appService';
-import { sendVerificationCodeEmail } from '../services/emailService';
-import { auth } from '../firebase/config';
+import { AuthService } from '../services';
 import { isDisposableEmail } from '../utils/emailValidation';
 import Captcha from '../components/ui/Captcha';
 import { useTranslation } from '../i18n';
 
 export default function RegisterPage() {
-  const { register, refreshProfile, setVerificationPending } = useAuth();
+  const { register } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' });
@@ -18,13 +16,10 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const [enteredCode, setEnteredCode] = useState('');
   const [showVerify, setShowVerify] = useState(false);
-  const [verifyError, setVerifyError] = useState('');
-  const [codeSent, setCodeSent] = useState(false);
-  const [codeSendError, setCodeSendError] = useState('');
-  const [fallbackCode, setFallbackCode] = useState('');
-  const [resending, setResending] = useState(false);
+  const [checkingVerification, setCheckingVerification] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [verificationSuccess, setVerificationSuccess] = useState(false);
   const [captchaValid, setCaptchaValid] = useState(false);
 
   const update = (f: string, v: string) => { setForm(prev => ({ ...prev, [f]: v })); setTouched(prev => ({ ...prev, [f]: true })); };
@@ -44,22 +39,14 @@ export default function RegisterPage() {
     if (await isDisposableEmail(form.email)) {
       setError('Temporary email addresses are not allowed. Please use a permanent email.'); return;
     }
-    if (await AppService.checkNameExists(form.name)) {
+    if (await AuthService.checkNameExists(form.name)) {
       setError('This username is already taken. Please choose another.'); return;
     }
     setLoading(true);
     setError('');
     try {
       await register({ email: form.email, password: form.password, name: form.name });
-      const code = await AppService.generateVerificationCode(auth.currentUser!.uid);
-      setFallbackCode(code);
-      try {
-        await sendVerificationCodeEmail(form.email, code, form.name);
-        setCodeSent(true);
-      } catch (emailErr: any) {
-        setCodeSendError(emailErr.message || 'Email delivery failed. Your verification code is shown below.');
-      }
-      setVerificationPending(true);
+      await AuthService.sendVerificationCode();
       setShowVerify(true);
     } catch (err: any) {
       setError(err.message || 'Registration failed');
@@ -68,28 +55,29 @@ export default function RegisterPage() {
     }
   };
 
-  const handleVerifyCode = async () => {
-    if (!auth.currentUser) return;
-    setVerifyError('');
-    const ok = await AppService.verifyEmailCode(auth.currentUser.uid, enteredCode);
-    if (ok) {
-      setVerificationPending(false);
-      await refreshProfile();
-      navigate('/');
-    } else {
-      setVerifyError('Invalid or expired verification code');
+  const handleCheckVerification = async () => {
+    setCheckingVerification(true);
+    try {
+      const ok = await AuthService.verifyEmailCode(verificationCode);
+      if (ok) {
+        setVerificationSuccess(true);
+        setTimeout(() => navigate('/'), 1500);
+      } else {
+        setError('Invalid or expired code. Please try again.');
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to verify code.');
+    } finally {
+      setCheckingVerification(false);
     }
   };
 
   return (
     <div className="relative h-full flex items-center justify-center px-4 py-4">
-      {/* Full-window background */}
       <div className="fixed inset-0 pointer-events-none" style={{ backgroundColor: '#fef0db' }} />
-      {/* Texture overlay */}
       <div className="fixed inset-0 pointer-events-none opacity-[0.35]"
         style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'40\' height=\'40\' viewBox=\'0 0 40 40\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Ccircle cx=\'20\' cy=\'20\' r=\'1\' fill=\'%23f3722c\' fill-opacity=\'0.3\'/%3E%3C/svg%3E")', backgroundSize: '40px 40px' }}
       />
-      {/* Background JS watermark */}
       <div className="fixed inset-0 pointer-events-none flex items-center justify-center opacity-[0.04]">
         <img src="/logo.png" alt="" className="w-[35vw] h-auto select-none" />
       </div>
@@ -190,56 +178,63 @@ export default function RegisterPage() {
               </>
             ) : (
               <div className="text-center">
-                <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center mx-auto mb-4">
-                  <svg className="h-8 w-8 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                </div>
-                <h3 className="text-lg font-bold text-secondary-900 mb-2">{t('register.verifyTitle')}</h3>
-                  <p className="text-sm text-secondary-500 mb-1">
-                    {t('register.verifyDesc')} <strong>{form.email}</strong>.
-                  </p>
-                  <p className="text-xs text-secondary-400 mb-3">
-                    Verification code is sent to the respective email. Please check it. If not received, check in spam.
-                  </p>
-                {codeSendError && (
-                  <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
-                    {codeSendError}
-                  </div>
+                {verificationSuccess ? (
+                  <>
+                    <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                      <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-secondary-900 mb-2">Email Verified!</h3>
+                    <p className="text-sm text-secondary-500">Redirecting you to the app...</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center mx-auto mb-4">
+                      <svg className="h-8 w-8 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-secondary-900 mb-2">{t('register.verifyTitle')}</h3>
+                    <p className="text-sm text-secondary-500 mb-1">
+                      A 6-digit verification code has been sent to <strong>{form.email}</strong>.
+                    </p>
+                    <p className="text-xs text-secondary-400 mb-4">
+                      Enter the code below to verify your account. Check your spam folder if you don't see it.
+                    </p>
+                    <div className="mb-3">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        placeholder="Enter 6-digit code"
+                        className="input text-center text-lg tracking-[0.5em] font-mono"
+                      />
+                    </div>
+                    {error && (
+                      <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">{error}</div>
+                    )}
+                    <button
+                      onClick={handleCheckVerification}
+                      disabled={checkingVerification || verificationCode.length !== 6}
+                      className="btn-primary w-full mb-2"
+                    >
+                      {checkingVerification ? 'Verifying...' : 'Verify & Continue'}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await AuthService.sendVerificationCode();
+                          setError('');
+                          setVerificationCode('');
+                        } catch {
+                          setError('Failed to resend verification code.');
+                        }
+                      }}
+                      className="w-full text-sm text-primary-600 hover:text-primary-700 font-medium py-2 rounded-lg border border-primary-200 hover:bg-primary-50 transition-colors"
+                    >
+                      Resend Code
+                    </button>
+                  </>
                 )}
-                <input
-                  type="text"
-                  value={enteredCode}
-                  onChange={(e) => setEnteredCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  className={`input text-center text-2xl font-mono tracking-widest mb-3 ${verifyError ? 'border-red-300' : ''}`}
-                  placeholder={t('register.verifyCodePlaceholder')}
-                  maxLength={6}
-                />
-                {verifyError && <p className="text-xs text-red-500 mb-3">{verifyError}</p>}
-                <button onClick={handleVerifyCode} disabled={enteredCode.length !== 6} className="btn-primary w-full mb-2">
-                  {t('register.verifySubmit')}
-                </button>
-                <div className="flex gap-2">
-                  <button
-                    onClick={async () => {
-                      if (!auth.currentUser) return;
-                      setResending(true);
-                      setCodeSendError('');
-                      try {
-                        const code = await AppService.generateVerificationCode(auth.currentUser.uid);
-                        setFallbackCode(code);
-                        await sendVerificationCodeEmail(form.email, code, form.name);
-                        setCodeSent(true);
-                      } catch (emailErr: any) {
-                        setCodeSendError(emailErr.message || 'Email delivery failed.');
-                      } finally {
-                        setResending(false);
-                      }
-                    }}
-                    disabled={resending}
-                    className="flex-1 text-sm text-primary-600 hover:text-primary-700 font-medium disabled:opacity-50 py-2 rounded-lg border border-primary-200 hover:bg-primary-50 transition-colors"
-                  >
-                    {resending ? 'Resending...' : t('login.resendCode')}
-                  </button>
-                </div>
               </div>
             )}
           </div>

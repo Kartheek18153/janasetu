@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../i18n';
 import { useAuth } from '../context/AuthContext';
-import AppService from '../services/appService';
+import { DepartmentService, AppointmentService } from '../services';
 import Badge from '../components/ui/Badge';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
@@ -30,9 +30,9 @@ export default function AppointmentsPage() {
     const load = async () => {
       try {
         const [depts, offs, apps] = await Promise.all([
-          AppService.getDepartments(),
-          AppService.getOfficers(),
-          user ? AppService.getAppointmentsByCitizen(user.uid) : Promise.resolve([]),
+          DepartmentService.getDepartments(),
+          DepartmentService.getOfficers(),
+          user ? AppointmentService.getAppointmentsByCitizen(user.uid) : Promise.resolve([]),
         ]);
         setDepartments(depts.map(d => d.name));
         setOfficers(offs);
@@ -65,7 +65,7 @@ export default function AppointmentsPage() {
     setSubmitting(true);
     try {
       const off = officers.find(o => o.id === form.officerId)!;
-      await AppService.createAppointment({
+      await AppointmentService.create({
         citizenId: user.uid,
         citizenName: user.name,
         citizenPhone: user.phone,
@@ -79,7 +79,7 @@ export default function AppointmentsPage() {
         preferredTimeSlot: form.preferredTimeSlot as TimeSlot,
       });
       setSuccess(t('appointments.success'));
-      const updated = await AppService.getAppointmentsByCitizen(user.uid);
+      const updated = await AppointmentService.getAppointmentsByCitizen(user.uid);
       setAppointments(updated);
       setShowModal(false);
       setForm({ department: '', officerId: '', purpose: '', preferredDate: '', preferredTimeSlot: '' });
@@ -93,7 +93,7 @@ export default function AppointmentsPage() {
   const minDate = tomorrow.toISOString().split('T')[0];
 
   return (
-    <div>
+    <div className="auto-reveal-children">
       <div className="flex items-start justify-between mb-8">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-secondary-900">{t('appointments.title')}</h1>

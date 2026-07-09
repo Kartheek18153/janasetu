@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Scheme, UserProfileForm } from '../types';
-import AppService from '../services/appService';
+import { SchemeService } from '../services';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../i18n';
 import EligibilityProfiler from '../components/schemes/EligibilityProfiler';
@@ -150,10 +150,10 @@ function SchemeCard({
         <div className="absolute top-3 right-3">
           <ScoreBadge score={score} />
         </div>
-        {(scheme as any).scope && (
+        {scheme.scope && (
           <div className="absolute bottom-2 left-3">
             <span className="text-[10px] font-semibold uppercase tracking-wider bg-white/20 backdrop-blur-sm text-white px-2 py-0.5 rounded">
-              {(scheme as any).scope === 'central' ? 'Central Govt' : 'State Govt'}
+              {scheme.scope === 'central' ? 'Central Govt' : 'State Govt'}
             </span>
           </div>
         )}
@@ -207,7 +207,7 @@ export default function SchemesPage() {
 
   const results = useMemo(() => {
     if (!profile) return null;
-    return AppService.matchSchemes(profile);
+    return SchemeService.matchSchemes(profile);
   }, [profile]);
 
   const eligibleSchemes = useMemo(
@@ -234,7 +234,7 @@ export default function SchemesPage() {
       return;
     }
     try {
-      await AppService.applyForScheme(user.uid, scheme.id, scheme.name);
+      await SchemeService.applyForScheme(user.uid, scheme.id, scheme.name);
       navigate('/my-applications');
     } catch {
       // stay on page
@@ -243,7 +243,7 @@ export default function SchemesPage() {
 
   if (showProfiler || !profile) {
     return (
-      <div className="relative">
+      <div className="relative auto-reveal-children">
         <div className="bg-gradient-to-r from-primary-600 via-primary-700 to-primary-900 relative overflow-hidden">
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute top-5 right-10 opacity-[0.06]">
@@ -270,7 +270,7 @@ export default function SchemesPage() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative auto-reveal-children">
       <div className="bg-gradient-to-r from-primary-600 via-primary-700 to-primary-900 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-5 right-10 opacity-[0.06]">

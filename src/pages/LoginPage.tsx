@@ -1,20 +1,14 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import AppService from '../services/appService';
-import { sendVerificationCodeEmail } from '../services/emailService';
-import { auth } from '../firebase/config';
+import { AuthService } from '../services';
 import { useTranslation } from '../i18n';
 
-type LoginRole = 'citizen' | 'admin';
-
 export default function LoginPage() {
-  const { login, loginWithGoogle, refreshProfile, setVerificationPending } = useAuth();
+  const { login, loginWithGoogle, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const roleParam = searchParams.get('role') as LoginRole;
   const redirect = searchParams.get('redirect') || '/';
-  const [role, setRole] = useState<LoginRole>(roleParam || 'citizen');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -23,14 +17,9 @@ export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [showVerify, setShowVerify] = useState(false);
-  const [enteredCode, setEnteredCode] = useState('');
-  const [verifyError, setVerifyError] = useState('');
-  const [pendingUid, setPendingUid] = useState<string | null>(null);
-  const [pendingName, setPendingName] = useState('');
-  const [pendingPhone, setPendingPhone] = useState('');
-  const [resending, setResending] = useState(false);
-  const [codeSendError, setCodeSendError] = useState('');
-  const [fallbackCode, setFallbackCode] = useState('');
+  const [checkingVerification, setCheckingVerification] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [emailVerified, setEmailVerified] = useState(false);
   const { t } = useTranslation();
 
   const touchField = (f: string) => setTouched(prev => ({ ...prev, [f]: true }));
@@ -43,25 +32,9 @@ export default function LoginPage() {
     setError('');
     try {
       const userProfile = await login(email, password);
-      if (role === 'admin' && userProfile.role !== 'admin') {
-        setError('Access denied. This account does not have admin privileges.');
-        setLoading(false);
-        return;
-      }
-      const verified = await AppService.isEmailVerified();
+      const verified = await AuthService.getEmailVerified();
       if (!verified) {
-        const uid = auth.currentUser?.uid || null;
-        setPendingUid(uid);
-        setPendingName(userProfile.name);
-        setPendingPhone(userProfile.phone || '');
-        setVerificationPending(true);
-        const code = await AppService.generateVerificationCode(uid!);
-        setFallbackCode(code);
-        try {
-          await sendVerificationCodeEmail(email, code, userProfile.name);
-        } catch (emailErr: any) {
-          setCodeSendError(emailErr.message || 'Email delivery failed. Your verification code is shown below.');
-        }
+        await AuthService.sendVerificationCode();
         setShowVerify(true);
         setLoading(false);
         return;
@@ -74,17 +47,25 @@ export default function LoginPage() {
     }
   };
 
-  const handleVerifyCode = async () => {
-    if (!pendingUid) return;
-    setVerifyError('');
-    const ok = await AppService.verifyEmailCode(pendingUid, enteredCode);
-    if (ok) {
-      setVerificationPending(false);
-      await refreshProfile();
-      const snap = await AppService.getCurrentUser();
-      navigate(snap?.role === 'admin' ? '/admin' : redirect);
-    } else {
-      setVerifyError('Invalid or expired verification code');
+  const handleCheckVerification = async () => {
+    setCheckingVerification(true);
+    try {
+      const ok = await AuthService.verifyEmailCode(verificationCode);
+      if (ok) {
+        setEmailVerified(true);
+        await refreshProfile();
+        setTimeout(() => {
+          const role = AuthService.getCurrentUser().then(u => {
+            navigate(u?.role === 'admin' ? '/admin' : redirect);
+          });
+        }, 1000);
+      } else {
+        setError('Invalid or expired code. Please try again.');
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to verify code.');
+    } finally {
+      setCheckingVerification(false);
     }
   };
 
@@ -93,19 +74,14 @@ export default function LoginPage() {
     setError('');
     try {
       const userProfile = await loginWithGoogle();
-      const uid = auth.currentUser?.uid || null;
-      if (!uid) { setGoogleLoading(false); return; }
-      const code = await AppService.generateVerificationCode(uid);
-      setFallbackCode(code);
-      setPendingUid(uid);
-      setPendingName(userProfile.name);
-      setVerificationPending(true);
-      try {
-        await sendVerificationCodeEmail(userProfile.email, code, userProfile.name);
-      } catch (emailErr: any) {
-        setCodeSendError(emailErr.message || 'Email delivery failed. Your verification code is shown below.');
+      const verified = await AuthService.getEmailVerified();
+      if (!verified) {
+        await AuthService.sendVerificationCode();
+        setShowVerify(true);
+        setGoogleLoading(false);
+        return;
       }
-      setShowVerify(true);
+      navigate(userProfile.role === 'admin' ? '/admin' : redirect);
     } catch (err: any) {
       if (err.code !== 'auth/popup-closed-by-user') {
         setError(err.message || 'Google sign-in failed');
@@ -117,20 +93,14 @@ export default function LoginPage() {
 
   return (
     <div className="relative h-full flex items-center justify-center px-4 py-4">
-      {/* Full-window background */}
       <div className="fixed inset-0 pointer-events-none" style={{ backgroundColor: '#fef0db' }} />
-      {/* Texture overlay */}
       <div className="fixed inset-0 pointer-events-none opacity-[0.35]"
         style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'40\' height=\'40\' viewBox=\'0 0 40 40\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Ccircle cx=\'20\' cy=\'20\' r=\'1\' fill=\'%23f3722c\' fill-opacity=\'0.3\'/%3E%3C/svg%3E")', backgroundSize: '40px 40px' }}
       />
-      {/* Background JS watermark */}
       <div className="fixed inset-0 pointer-events-none flex items-center justify-center opacity-[0.04]">
         <img src="/logo.png" alt="" className="w-[35vw] h-auto select-none" />
       </div>
       <style>{`html, body { background-color: #fef0db !important; }`}</style>
-      <div className="absolute -bottom-10 -left-10 w-48 h-48 opacity-[0.08] pointer-events-none hidden sm:block">
-        <img src="/images (4).jpg" alt="" className="w-full h-full object-cover rounded-2xl -rotate-6" />
-      </div>
       <div className="relative w-full max-w-md z-10">
         <div className="text-center mb-8">
           <div className="text-3xl font-bold text-primary-700 mb-1">JanaSetu</div>
@@ -141,43 +111,7 @@ export default function LoginPage() {
         </div>
 
         <div className="card overflow-hidden shadow-lg shadow-secondary-200/50">
-          {/* Role Tabs */}
-          <div className="flex bg-secondary-50 p-1.5 gap-1">
-            <button
-              onClick={() => setRole('citizen')}
-              className={`flex-1 px-4 py-2.5 text-sm font-medium text-center rounded-lg transition-all duration-300 ${
-                role === 'citizen'
-                  ? 'bg-white text-primary-700 shadow-sm shadow-primary-200/50 scale-[1.02]'
-                  : 'text-secondary-500 hover:text-secondary-700 bg-transparent'
-              }`}
-            >
-              <span className="flex items-center justify-center gap-2">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                Citizen
-              </span>
-            </button>
-            <button
-              onClick={() => setRole('admin')}
-              className={`flex-1 px-4 py-2.5 text-sm font-medium text-center rounded-lg transition-all duration-300 ${
-                role === 'admin'
-                  ? 'bg-white text-admin-700 shadow-sm shadow-admin-200/50 scale-[1.02]'
-                  : 'text-secondary-500 hover:text-secondary-700 bg-transparent'
-              }`}
-            >
-              <span className="flex items-center justify-center gap-2">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-                Admin
-              </span>
-            </button>
-          </div>
-
           <div className="p-6">
-            {role === 'admin' && (
-              <div className="mb-4 p-3 bg-gradient-to-r from-admin-50 to-admin-50/50 border border-admin-100 rounded-lg text-xs text-admin-700">
-                Admin login — only for authorized government officials.
-              </div>
-            )}
-
             {error && !showVerify && (
               <div className="mb-4 p-3 bg-gradient-to-r from-red-50 to-red-50/50 border border-red-200 rounded-lg text-sm text-red-700 flex items-start gap-2">
                 <svg className="h-4 w-4 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -185,57 +119,65 @@ export default function LoginPage() {
               </div>
             )}
 
-            {showVerify ? (
+                {showVerify ? (
               <div className="text-center">
-                <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center mx-auto mb-4">
-                  <svg className="h-8 w-8 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                </div>
-                <h3 className="text-lg font-bold text-secondary-900 mb-2">Verify OTP</h3>
-                <p className="text-sm text-secondary-500 mb-1">
-                  Enter the 6-digit code sent to <strong>{email}</strong>.
-                </p>
-                <p className="text-xs text-secondary-400 mb-3">
-                  Verification code is sent to the respective email. Please check it. If not received, check in spam.
-                </p>
-                {codeSendError && (
-                  <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
-                    {codeSendError}
-                  </div>
+                {emailVerified ? (
+                  <>
+                    <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                      <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-secondary-900 mb-2">Email Verified!</h3>
+                    <p className="text-sm text-secondary-500 mb-4">Redirecting you to the app...</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center mx-auto mb-4">
+                      <svg className="h-8 w-8 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-secondary-900 mb-2">Verify Your Email</h3>
+                    <p className="text-sm text-secondary-500 mb-1">
+                      A 6-digit verification code has been sent to <strong>{email}</strong>.
+                    </p>
+                    <p className="text-xs text-secondary-400 mb-4">
+                      Enter the code below to verify your account. Check your spam folder if you don't see it.
+                    </p>
+                    <div className="mb-3">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        placeholder="Enter 6-digit code"
+                        className="input text-center text-lg tracking-[0.5em] font-mono"
+                      />
+                    </div>
+                    {error && (
+                      <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">{error}</div>
+                    )}
+                    <button
+                      onClick={handleCheckVerification}
+                      disabled={checkingVerification || verificationCode.length !== 6}
+                      className="btn-primary w-full mb-2"
+                    >
+                      {checkingVerification ? 'Verifying...' : 'Verify & Continue'}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await AuthService.sendVerificationCode();
+                          setError('');
+                          setVerificationCode('');
+                        } catch {
+                          setError('Failed to resend verification code.');
+                        }
+                      }}
+                      className="w-full text-sm text-primary-600 hover:text-primary-700 font-medium py-2 rounded-lg border border-primary-200 hover:bg-primary-50 transition-colors"
+                    >
+                      Resend Code
+                    </button>
+                  </>
                 )}
-                <input
-                  type="text"
-                  value={enteredCode}
-                  onChange={(e) => setEnteredCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  className={`input text-center text-2xl font-mono tracking-widest mb-3 ${verifyError ? 'border-red-300' : ''}`}
-                  placeholder="Enter 6-digit OTP"
-                  maxLength={6}
-                />
-                {verifyError && <p className="text-xs text-red-500 mb-3">{verifyError}</p>}
-                <button onClick={handleVerifyCode} disabled={enteredCode.length !== 6} className="btn-primary w-full mb-2">
-                  Verify & Continue
-                </button>
-                <div className="flex gap-2">
-                  <button
-                    onClick={async () => {
-                      if (!pendingUid) return;
-                      setResending(true);
-                      setCodeSendError('');
-                      try {
-                        const code = await AppService.generateVerificationCode(pendingUid);
-                        setFallbackCode(code);
-                        await sendVerificationCodeEmail(email, code, pendingName);
-                      } catch {
-                        setCodeSendError('Email delivery failed.');
-                      } finally {
-                        setResending(false);
-                      }
-                    }}
-                    disabled={resending}
-                    className="flex-1 text-sm text-primary-600 hover:text-primary-700 font-medium disabled:opacity-50 py-2 rounded-lg border border-primary-200 hover:bg-primary-50 transition-colors"
-                  >
-                    {resending ? 'Resending...' : 'Resend Code'}
-                  </button>
-                </div>
               </div>
             ) : (
               <>
@@ -309,13 +251,13 @@ export default function LoginPage() {
                             if (!email) { setError('Enter your registered email first'); return; }
                             setLoading(true);
                             try {
-                              const regId = await AppService.lookupRegistrationId(email);
+                              const regId = await AuthService.lookupRegistrationId(email);
                               setError(regId ? `Your Registration ID: ${regId}` : `Your Login ID is your registered email: ${email}`);
                             } catch {
                               setError(`Your Login ID is your registered email: ${email}`);
                             } finally { setLoading(false); }
                           }} className="text-xs text-primary-600 hover:text-primary-700">Forgot Login ID?</button>
-                          <button type="button" onClick={() => AppService.resetPassword(email).then(() => setError('Password reset link sent to your email')).catch(() => setError('Enter your registered email first'))} className="text-xs text-primary-600 hover:text-primary-700">Forgot Password?</button>
+                          <button type="button" onClick={() => AuthService.resetPassword(email).then(() => setError('Password reset link sent to your email')).catch(() => setError('Enter your registered email first'))} className="text-xs text-primary-600 hover:text-primary-700">Forgot Password?</button>
                         </div>
                       </div>
                       <button type="submit" disabled={loading} className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-primary-600 to-primary-700 hover:shadow-lg transition-all disabled:opacity-50">

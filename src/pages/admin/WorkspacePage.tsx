@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from '../../i18n';
-import AppService from '../../services/appService';
+import { GrievanceService, AppointmentService } from '../../services';
 import Badge from '../../components/ui/Badge';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import {
@@ -21,8 +21,8 @@ export default function AdminWorkspacePage() {
     const load = async () => {
       try {
         const [grievances, appointments] = await Promise.all([
-          AppService.getGrievances(),
-          AppService.getAllAppointments(),
+          GrievanceService.getGrievances(),
+          AppointmentService.getAllAppointments(),
         ]);
         setPendingGrievances(grievances.filter(g => g.status === 'submitted' || g.status === 'under_review').slice(0, 5));
         setTodayAppointments(appointments.filter(a => new Date(a.preferredDate).toDateString() === today && a.status !== 'cancelled'));

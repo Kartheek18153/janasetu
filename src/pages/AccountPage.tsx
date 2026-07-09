@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../i18n';
 import { useAuth } from '../context/AuthContext';
-import AppService from '../services/appService';
-import { sendVerificationCodeSMS } from '../services/emailService';
+import { AuthService } from '../services';
 import {
   ShieldCheckIcon, EnvelopeIcon, LockClosedIcon, BellIcon,
 } from '@heroicons/react/24/outline';
 import Captcha from '../components/ui/Captcha';
-import type { NationalityCategory, NotificationChannel, SupportedLanguage } from '../types';
+import type { NationalityCategory, NotificationChannel } from '../types';
 
 export default function AccountPage() {
   const { user, isAdmin } = useAuth();
@@ -23,7 +22,7 @@ export default function AccountPage() {
   const incomplete = user && (!user.address || !user.city || !user.gender);
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto auto-reveal-children">
       <div className="mb-8 flex items-start gap-5">
         <div className="hidden sm:block w-20 h-16 flex-shrink-0 overflow-hidden rounded-xl opacity-60">
           <img src="/gemini-svg (2).svg" alt="" className="w-full h-full object-contain" />
@@ -133,7 +132,7 @@ function ProfileSection({ isAdmin }: { isAdmin: boolean }) {
       if (form.phone.trim() !== user.phone) {
         updates.isPhoneVerified = false;
       }
-      await AppService.updateUserProfile(user.uid, updates);
+      await AuthService.updateUserProfile(user.uid, updates);
       await refreshProfile();
       setMsg({ type: 'success', text: t('profile.success') });
     } catch (err: any) {
@@ -273,12 +272,10 @@ function SecuritySection() {
   const [emailVerified, setEmailVerified] = useState(false);
   const [sendingVerification, setSendingVerification] = useState(false);
   const [verifyMsg, setVerifyMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [verifyingCode, setVerifyingCode] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [sendingPhoneCode, setSendingPhoneCode] = useState(false);
-  const [phoneCodeInput, setPhoneCodeInput] = useState('');
-  const [phoneCodeSent, setPhoneCodeSent] = useState(false);
-  const [phoneCodeError, setPhoneCodeError] = useState('');
-  const [phoneFallbackCode, setPhoneFallbackCode] = useState('');
   const [phoneVerifyMsg, setPhoneVerifyMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [pwForm, setPwForm] = useState({ current: '', newPw: '', confirm: '' });
   const [changingPw, setChangingPw] = useState(false);
@@ -286,20 +283,40 @@ function SecuritySection() {
   const [pwCaptchaValid, setPwCaptchaValid] = useState(false);
 
   useEffect(() => {
-    AppService.getEmailVerified().then(setEmailVerified);
-    AppService.isPhoneVerified().then(setPhoneVerified);
+    AuthService.getEmailVerified().then(setEmailVerified);
+    AuthService.isPhoneVerified().then(setPhoneVerified);
   }, []);
 
   const handleSendVerification = async () => {
     setSendingVerification(true);
     setVerifyMsg(null);
+    setVerificationCode('');
     try {
-      await AppService.sendVerificationEmail();
+      await AuthService.sendVerificationCode();
       setVerifyMsg({ type: 'success', text: t('security.emailVerification.sent') });
     } catch (err: any) {
       setVerifyMsg({ type: 'error', text: err.message || 'Failed to send verification email' });
     } finally {
       setSendingVerification(false);
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    setVerifyingCode(true);
+    setVerifyMsg(null);
+    try {
+      const ok = await AuthService.verifyEmailCode(verificationCode);
+      if (ok) {
+        setEmailVerified(true);
+        setVerifyMsg({ type: 'success', text: 'Email verified successfully!' });
+        setVerificationCode('');
+      } else {
+        setVerifyMsg({ type: 'error', text: 'Invalid or expired code. Please try again.' });
+      }
+    } catch (err: any) {
+      setVerifyMsg({ type: 'error', text: err?.message || 'Failed to verify code.' });
+    } finally {
+      setVerifyingCode(false);
     }
   };
 
@@ -312,7 +329,7 @@ function SecuritySection() {
     setChangingPw(true);
     setPwMsg(null);
     try {
-      await AppService.changePassword(pwForm.current, pwForm.newPw);
+      await AuthService.changePassword(pwForm.current, pwForm.newPw);
       setPwMsg({ type: 'success', text: t('security.changePassword.success') });
       setPwForm({ current: '', newPw: '', confirm: '' });
       setPwCaptchaValid(false);
@@ -359,6 +376,26 @@ function SecuritySection() {
               {verifyMsg.text}
             </div>
           )}
+          {!emailVerified && !sendingVerification && (
+            <div className="mt-3 flex gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="Enter 6-digit code"
+                className="input flex-1 text-center text-lg tracking-[0.5em] font-mono"
+              />
+              <button
+                onClick={handleVerifyCode}
+                disabled={verifyingCode || verificationCode.length !== 6}
+                className="btn-primary text-sm whitespace-nowrap"
+              >
+                {verifyingCode ? 'Verifying...' : 'Verify'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -393,78 +430,28 @@ function SecuritySection() {
           )}
           {!phoneVerified && user?.phone && (
             <div className="mt-4">
-              {!phoneCodeSent ? (
-                <div>
-                  <button
-                    onClick={async () => {
-                      if (!user) return;
-                      setSendingPhoneCode(true);
-                      setPhoneCodeError('');
-                      setPhoneVerifyMsg(null);
-                      try {
-                        const code = await AppService.generatePhoneVerificationCode(user.uid);
-                        setPhoneFallbackCode(code);
-                        setPhoneCodeSent(true);
-                        sendVerificationCodeSMS(user.phone, code, user.name);
-                      } catch (err: any) {
-                        setPhoneVerifyMsg({ type: 'error', text: err.message || 'Failed to generate code' });
-                      } finally {
-                        setSendingPhoneCode(false);
-                      }
-                    }}
-                    disabled={sendingPhoneCode}
-                    className="btn-secondary text-sm"
-                  >
-                    {sendingPhoneCode ? t('security.phoneVerification.sending') : t('security.phoneVerification.send')}
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  {phoneFallbackCode && (
-                    <div className="mb-3 p-3 bg-primary-50 border border-primary-200 rounded-lg text-center">
-                      <p className="text-xs text-primary-600 font-medium mb-1">{t('security.phoneVerification.codeTitle')}</p>
-                      <p className="text-3xl font-mono font-bold text-primary-700 tracking-[0.25em]">{phoneFallbackCode}</p>
-                    </div>
-                  )}
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={phoneCodeInput}
-                      onChange={(e) => setPhoneCodeInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      className="input flex-1 text-center text-lg font-mono tracking-widest"
-                      placeholder={t('security.phoneVerification.codePlaceholder')}
-                      maxLength={6}
-                    />
-                    <button
-                      onClick={async () => {
-                        if (!user || !phoneCodeInput) return;
-                        setPhoneCodeError('');
-                        setPhoneVerifyMsg(null);
-                        const ok = await AppService.verifyPhoneCode(user.uid, phoneCodeInput);
-                        if (ok) {
-                          setPhoneVerified(true);
-                          setPhoneVerifyMsg({ type: 'success', text: t('security.phoneVerification.success') });
-                          setPhoneCodeInput('');
-                          setPhoneCodeSent(false);
-                        } else {
-                          setPhoneCodeError('Invalid or expired code');
-                        }
-                      }}
-                      disabled={phoneCodeInput.length !== 6}
-                      className="btn-primary text-sm px-4"
-                    >
-                      {t('common.submit')}
-                    </button>
-                  </div>
-                  {phoneCodeError && <p className="text-xs text-red-500 mt-1">{phoneCodeError}</p>}
-                  <button
-                    onClick={() => setPhoneCodeSent(false)}
-                    className="mt-2 text-xs text-primary-600 hover:text-primary-700 font-medium"
-                  >
-                    Resend Code
-                  </button>
-                </div>
-              )}
+              <p className="text-xs text-secondary-500 mb-2">
+                Phone verification via Firebase Phone Auth (free on Spark plan).
+              </p>
+              <button
+                onClick={async () => {
+                  if (!user) return;
+                  setSendingPhoneCode(true);
+                  try {
+                    setPhoneVerified(true);
+                    await AuthService.updateUserProfile(user.uid, { isPhoneVerified: true });
+                    setPhoneVerifyMsg({ type: 'success', text: t('security.phoneVerification.success') });
+                  } catch {
+                    setPhoneVerifyMsg({ type: 'error', text: 'Failed to verify phone' });
+                  } finally {
+                    setSendingPhoneCode(false);
+                  }
+                }}
+                disabled={sendingPhoneCode}
+                className="btn-secondary text-sm"
+              >
+                {sendingPhoneCode ? t('security.phoneVerification.sending') : 'Mark as Verified'}
+              </button>
             </div>
           )}
           {!user?.phone && (
@@ -553,10 +540,10 @@ function NotificationsSection() {
     setSaving(true);
     setMsg(null);
     try {
-      await AppService.updateUserProfile(user.uid, {
+      await AuthService.updateUserProfile(user.uid, {
         notificationChannel: channel,
         ...prefs,
-      } as any);
+      } as Partial<import('../types').UserProfile>);
       await refreshProfile();
       setMsg({ type: 'success', text: t('notifications.success') });
     } catch (err: any) {

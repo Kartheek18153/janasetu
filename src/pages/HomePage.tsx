@@ -9,9 +9,10 @@ import {
   CheckCircleIcon, ClockIcon, UserGroupIcon, ArrowRightIcon,
   SparklesIcon, ChevronRightIcon, PhoneIcon,
 } from '@heroicons/react/24/outline';
-import AppService from '../services/appService';
+import { AnnouncementService, DepartmentService, ExternalSchemeService } from '../services';
 import Badge from '../components/ui/Badge';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import Reveal from '../hooks/useScrollReveal';
 import { Announcement, Grievance } from '../types';
 
 function AshokaChakra({ className = '' }: { className?: string }) {
@@ -52,7 +53,7 @@ function Emblem({ className = '' }: { className?: string }) {
   );
 }
 
-const serviceColors = [
+const serviceColors: { bg: string; iconBg: string; iconColor: string; accent: string; badge: string; border: string; shadow: string; topBar: string }[] = [
   { bg: 'from-amber-50 to-orange-50', iconBg: 'from-[#FF9933] to-[#ea580c]', iconColor: 'text-white', accent: 'text-[#FF9933]', badge: 'bg-[#FF9933]/10 text-[#ea580c]', border: 'hover:border-[#FF9933]/40', shadow: 'hover:shadow-[#FF9933]/20', topBar: 'from-[#FF9933] to-[#f97316]' },
   { bg: 'from-blue-50 to-indigo-50', iconBg: 'from-[#1a237e] to-[#283593]', iconColor: 'text-white', accent: 'text-[#1a237e]', badge: 'bg-[#1a237e]/10 text-[#1a237e]', border: 'hover:border-[#1a237e]/40', shadow: 'hover:shadow-[#1a237e]/20', topBar: 'from-[#1a237e] to-[#3949ab]' },
   { bg: 'from-emerald-50 to-green-50', iconBg: 'from-[#138808] to-[#16a34a]', iconColor: 'text-white', accent: 'text-[#138808]', badge: 'bg-[#138808]/10 text-[#138808]', border: 'hover:border-[#138808]/40', shadow: 'hover:shadow-[#138808]/20', topBar: 'from-[#138808] to-[#15803d]' },
@@ -70,10 +71,10 @@ const services = [
 const stepColors = ['#FF9933', '#1a237e', '#138808', '#f97316'];
 
 const steps = [
-  { num: '01', titleKey: 'home.process.step1.title', descKey: 'home.process.step1.desc' },
-  { num: '02', titleKey: 'home.process.step2.title', descKey: 'home.process.step2.desc' },
-  { num: '03', titleKey: 'home.process.step3.title', descKey: 'home.process.step3.desc' },
-  { num: '04', titleKey: 'home.process.step4.title', descKey: 'home.process.step4.desc' },
+  { num: '01', titleKey: 'home.process.step1.title', descKey: 'home.process.step1.desc', link: '/file-grievance' },
+  { num: '02', titleKey: 'home.process.step2.title', descKey: 'home.process.step2.desc', link: '/track' },
+  { num: '03', titleKey: 'home.process.step3.title', descKey: 'home.process.step3.desc', link: '/track' },
+  { num: '04', titleKey: 'home.process.step4.title', descKey: 'home.process.step4.desc', link: '/file-grievance' },
 ];
 
 const testimonials = [
@@ -127,6 +128,7 @@ export default function HomePage() {
   const [grievanceTab, setGrievanceTab] = useState<'all' | 'resolved' | 'pending'>('all');
   const [noticeIndex, setNoticeIndex] = useState(0);
   const [schemes, setSchemes] = useState<any[]>([]);
+  const [schemesUpdated, setSchemesUpdated] = useState<string>('');
 
   const notices = [
     { textKey: 'notice.extendedDeadline', link: '/announcements' },
@@ -164,8 +166,8 @@ export default function HomePage() {
     const fetchData = async () => {
       try {
         const [announcementsData, officersData] = await Promise.all([
-          AppService.getAnnouncements(),
-          AppService.getOfficers(),
+          AnnouncementService.getAnnouncements(),
+          DepartmentService.getOfficers(),
         ]);
         setAnnouncements(announcementsData.slice(0, 3));
         if (isAuthenticated) {
@@ -181,10 +183,14 @@ export default function HomePage() {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    fetch('https://indiandataproject.org/data/budget/2025-26/schemes.json')
-      .then(res => res.json())
-      .then(data => setSchemes(data.schemes || []))
-      .catch(() => {});
+    (async () => {
+      const data = await ExternalSchemeService.getBudgetSchemes();
+      setSchemes(data);
+      const last = ExternalSchemeService.getLastUpdated();
+      if (last) {
+        setSchemesUpdated(last.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }));
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -316,13 +322,15 @@ export default function HomePage() {
       </section>
 
       {isAuthenticated && (
+        <Reveal variant="slide-up" delay={100}>
         <section className="bg-secondary-900 py-10 sm:py-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
               {stats.map((s, i) => {
+                const statLinks = ['/track', '/track', '/track', '/appointments'];
                 const statColors = ['#FF9933', '#1a237e', '#138808', '#f97316'];
                 return (
-                  <div key={s.labelKey} className="relative">
+                  <Link key={s.labelKey} to={statLinks[i]} className="group relative block">
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-12 h-0.5 rounded-full" style={{ backgroundColor: statColors[i] }} />
                     <div className="text-3xl sm:text-4xl font-bold font-serif" style={{ color: statColors[i] }}>
                       {isNaN(parseInt(s.value)) ? s.value : <AnimatedCounter value={s.value} />}
@@ -330,18 +338,20 @@ export default function HomePage() {
                     </div>
                     <div className="flex items-center justify-center gap-1.5 mt-2">
                       <s.icon className="h-3.5 w-3.5 hidden sm:block" style={{ color: statColors[i] }} />
-                      <div className="text-xs sm:text-sm text-secondary-400 tracking-wide">{t(s.labelKey)}</div>
+                      <div className="text-xs sm:text-sm text-secondary-400 tracking-wide group-hover:text-secondary-600 transition-colors">{t(s.labelKey)}</div>
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
           </div>
         </section>
+        </Reveal>
       )}
 
       {/* ===== FEATURED SCHEMES ===== */}
       {schemes.length > 0 && (
+        <Reveal variant="slide-up" delay={200}>
         <section className="py-14 sm:py-20 bg-gradient-to-b from-secondary-50 to-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-xl mx-auto mb-10">
@@ -357,21 +367,26 @@ export default function HomePage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               {schemes.map((s: any) => (
-                <div key={s.id} className="bg-white border border-secondary-200 rounded-xl p-5 hover:shadow-lg transition-all hover:-translate-y-0.5">
+                <Link key={s.id} to={`/schemes/${s.id}`} className="block bg-white border border-secondary-200 rounded-xl p-5 hover:shadow-lg transition-all hover:-translate-y-0.5">
                   <h3 className="text-sm font-bold text-secondary-900 mb-1.5 leading-tight">{s.name}</h3>
                   <p className="text-xs text-secondary-500 mb-3 line-clamp-2 leading-relaxed">{s.humanContext}</p>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-secondary-400">{s.ministryName}</span>
                     <span className="font-semibold text-citizen-green">₹{(s.allocation / 1000).toFixed(1)}K Cr</span>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
+            {schemesUpdated && (
+              <p className="text-center text-[11px] text-secondary-400 mt-4">Updated: {schemesUpdated} &middot; Source: Union Budget 2025-26</p>
+            )}
           </div>
         </section>
+        </Reveal>
       )}
 
       {/* ===== HOW IT WORKS ===== */}
+      <Reveal variant="slide-up" delay={300}>
       <section id="how" ref={el => { sectionRefs.current[1] = el; }} className="py-14 sm:py-20 bg-white border-y border-secondary-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-xl mx-auto mb-12">
@@ -386,13 +401,13 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="relative mb-8 rounded-2xl overflow-hidden bg-gradient-to-r from-secondary-50 to-white border border-secondary-200">
+          <Link to="/schemes" className="relative mb-8 rounded-2xl overflow-hidden bg-gradient-to-r from-secondary-50 to-white border border-secondary-200 block hover:shadow-lg transition-all">
             <div className="flex items-center gap-6 p-6">
               <div className="hidden md:block w-48 h-36 flex-shrink-0 overflow-hidden rounded-xl">
                 <img src="/network-map.svg" alt="network" className="w-full h-full object-cover opacity-80" />
               </div>
               <div className="flex-1">
-                <p className="text-sm text-secondary-600 leading-relaxed">
+                <p className="text-sm text-secondary-600 leading-relaxed group-hover:text-secondary-900 transition-colors">
                   JanaSetu connects citizens with over 20 central and state government welfare schemes. 
                   Our intelligent recommendation engine matches your profile with the right schemes, 
                   ensuring you never miss out on benefits you're entitled to.
@@ -402,32 +417,33 @@ export default function HomePage() {
             <div className="hidden lg:block absolute right-0 top-0 bottom-0 w-48 overflow-hidden opacity-30">
               <img src="/Gemini_Generated_Image_r1pkvfr1pkvfr1pk.png" alt="" className="w-full h-full object-cover" />
             </div>
-          </div>
+          </Link>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {steps.map((s, i) => {
               const stepColor = stepColors[i];
               const nextColor = i < steps.length - 1 ? stepColors[i + 1] : stepColor;
               return (
-                <div key={s.num} className="relative">
+                <Link key={s.num} to={authHref(s.link)} className="group relative block">
                   {i < steps.length - 1 && (
                     <div className="hidden lg:block absolute top-8 left-[60%] w-[80%] h-px border-t-2 border-dashed"
                       style={{ borderColor: nextColor + '40' }} />
                   )}
-                  <div className="text-center">
+                  <div className="text-center group-hover:scale-105 transition-transform duration-300">
                     <div className="font-serif text-5xl font-black mb-3"
                       style={{ color: stepColor + '15', WebkitTextStroke: '1.5px ' + stepColor }}>
                       {s.num}
                     </div>
                     <div className="w-10 h-1 rounded-full mx-auto mb-3" style={{ backgroundColor: stepColor + '30' }} />
-                    <h4 className="text-base font-bold text-secondary-900 mb-1.5">{t(s.titleKey)}</h4>
+                    <h4 className="text-base font-bold text-secondary-900 mb-1.5 group-hover:text-citizen-blue transition-colors">{t(s.titleKey)}</h4>
                     <p className="text-sm text-secondary-500 leading-relaxed max-w-[220px] mx-auto">{t(s.descKey)}</p>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* ===== SECTION DIVIDER ===== */}
       <div className="relative h-16 overflow-hidden">
@@ -435,57 +451,62 @@ export default function HomePage() {
       </div>
 
       {/* ===== DIGITAL INDIA POSTER ===== */}
+      <Reveal variant="slide-left" delay={100}>
       <section className="relative py-0">
-        <div className="relative overflow-hidden bg-gradient-to-r from-[#1a237e] via-blue-900 to-[#0f1b33]">
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-10 right-20 opacity-[0.06]">
-              <AshokaChakra className="w-40 h-40 text-white" />
-            </div>
-            <div className="absolute bottom-10 left-20 opacity-[0.04]">
-              <AshokaChakra className="w-28 h-28 text-white" />
-            </div>
-          </div>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
-            <div className="flex flex-col lg:flex-row items-center gap-8">
-              <div className="flex-shrink-0">
-                <div className="relative w-44 h-44 sm:w-56 sm:h-56 rounded-2xl overflow-hidden shadow-2xl ring-2 ring-white/20 bg-white p-3">
-                  <img src="/brand-logo.svg" alt="Digital India" className="w-full h-full object-contain" />
-                </div>
+        <a href="https://www.digitalindia.gov.in" target="_blank" rel="noopener noreferrer" className="block">
+          <div className="relative overflow-hidden bg-gradient-to-r from-[#1a237e] via-blue-900 to-[#0f1b33] group">
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute top-10 right-20 opacity-[0.06]">
+                <AshokaChakra className="w-40 h-40 text-white" />
               </div>
-              <div className="flex-1 text-center lg:text-left">
-                <div className="flex items-center gap-3 justify-center lg:justify-start mb-3">
-                  <span className="px-3 py-1 bg-[#FF9933] text-white text-[10px] font-bold uppercase tracking-wider rounded">Initiative</span>
-                  <span className="px-3 py-1 bg-[#138808] text-white text-[10px] font-bold uppercase tracking-wider rounded">Digital India</span>
-                </div>
-                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">
-                  <span className="text-[#FF9933]">Digital</span> India Programme
-                </h2>
-                <p className="mt-3 text-blue-200/80 text-sm sm:text-base max-w-2xl leading-relaxed">
-                  JanaSetu is part of the Government of India's Digital India initiative, 
-                  aimed at transforming the nation into a digitally empowered society and knowledge economy. 
-                  Every citizen has the right to transparent, accessible, and efficient public services.
-                </p>
-                <div className="mt-5 flex flex-wrap gap-4 justify-center lg:justify-start text-sm">
-                  <div className="flex items-center gap-2 text-blue-200">
-                    <CheckCircleIcon className="h-4 w-4 text-[#138808]" />
-                    <span>Transparent Governance</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-blue-200">
-                    <CheckCircleIcon className="h-4 w-4 text-[#138808]" />
-                    <span>Citizen-Centric Services</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-blue-200">
-                    <CheckCircleIcon className="h-4 w-4 text-[#138808]" />
-                    <span>Real-Time Tracking</span>
-                  </div>
-                </div>
+              <div className="absolute bottom-10 left-20 opacity-[0.04]">
+                <AshokaChakra className="w-28 h-28 text-white" />
               </div>
             </div>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+              <div className="flex flex-col lg:flex-row items-center gap-8">
+                <div className="flex-shrink-0">
+                  <div className="relative w-44 h-44 sm:w-56 sm:h-56 rounded-2xl overflow-hidden shadow-2xl ring-2 ring-white/20 bg-white p-3 group-hover:ring-[#FF9933] transition-all">
+                    <img src="/brand-logo.svg" alt="Digital India" className="w-full h-full object-contain" />
+                  </div>
+                </div>
+                <div className="flex-1 text-center lg:text-left">
+                  <div className="flex items-center gap-3 justify-center lg:justify-start mb-3">
+                    <span className="px-3 py-1 bg-[#FF9933] text-white text-[10px] font-bold uppercase tracking-wider rounded">Initiative</span>
+                    <span className="px-3 py-1 bg-[#138808] text-white text-[10px] font-bold uppercase tracking-wider rounded">Digital India</span>
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">
+                    <span className="text-[#FF9933]">Digital</span> India Programme
+                  </h2>
+                  <p className="mt-3 text-blue-200/80 text-sm sm:text-base max-w-2xl leading-relaxed">
+                    JanaSetu is part of the Government of India's Digital India initiative, 
+                    aimed at transforming the nation into a digitally empowered society and knowledge economy. 
+                    Every citizen has the right to transparent, accessible, and efficient public services.
+                  </p>
+                  <div className="mt-5 flex flex-wrap gap-4 justify-center lg:justify-start text-sm">
+                    <div className="flex items-center gap-2 text-blue-200">
+                      <CheckCircleIcon className="h-4 w-4 text-[#138808]" />
+                      <span>Transparent Governance</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-blue-200">
+                      <CheckCircleIcon className="h-4 w-4 text-[#138808]" />
+                      <span>Citizen-Centric Services</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-blue-200">
+                      <CheckCircleIcon className="h-4 w-4 text-[#138808]" />
+                      <span>Real-Time Tracking</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        </a>
       </section>
+      </Reveal>
 
       {/* ===== SERVICES ===== */}
+      <Reveal variant="slide-up" delay={200}>
       <section id="services" ref={el => { sectionRefs.current[2] = el; }} className="py-14 sm:py-20 relative">
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute -right-20 top-1/4 opacity-[0.03]">
@@ -540,8 +561,10 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* ===== POSTERS & GALLERY ===== */}
+      <Reveal variant="slide-up" delay={300}>
       <section className="py-10 sm:py-14 bg-gradient-to-b from-secondary-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-xl mx-auto mb-10">
@@ -557,12 +580,12 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
-              { title: 'Voter Registration Drive', tag: 'Election Commission', img: '/Gemini_Generated_Image_h1gq3jh1gq3jh1gq.png' },
-              { title: 'Ayushman Bharat Health', tag: 'Health Ministry', img: '/images (4).jpg' },
-              { title: 'Swachh Bharat Mission', tag: 'Urban Development', img: '/Gemini_Generated_Image_39q49w39q49w39q4.png' },
-              { title: 'Skill India Campaign', tag: 'Skill Development', img: '/Gemini_Generated_Image_8qtbvm8qtbvm8qtb.png' },
+              { title: 'Voter Registration Drive', tag: 'Election Commission', img: '/Gemini_Generated_Image_h1gq3jh1gq3jh1gq.png', link: '/announcements' },
+              { title: 'Ayushman Bharat Health', tag: 'Health Ministry', img: '/images (4).jpg', link: '/announcements' },
+              { title: 'Swachh Bharat Mission', tag: 'Urban Development', img: '/Gemini_Generated_Image_39q49w39q49w39q4.png', link: '/announcements' },
+              { title: 'Skill India Campaign', tag: 'Skill Development', img: '/Gemini_Generated_Image_8qtbvm8qtbvm8qtb.png', link: '/announcements' },
             ].map((poster) => (
-              <div key={poster.title} className="group relative rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
+              <Link key={poster.title} to={poster.link} className="group relative rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                 <div className="h-44 relative overflow-hidden">
                   <img src={poster.img} alt={poster.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
@@ -574,7 +597,7 @@ export default function HomePage() {
                   <span className="text-[10px] font-bold uppercase tracking-wider text-citizen-blue">{poster.tag}</span>
                   <h3 className="text-sm font-bold text-secondary-900 mt-1 group-hover:text-citizen-blue transition-colors">{poster.title}</h3>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
           <div className="mt-8 text-center">
@@ -584,9 +607,11 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* ===== MY GRIEVANCES ===== */}
       {myGrievances.length > 0 && (
+        <Reveal variant="slide-up" delay={150}>
         <section className="pb-14 relative">
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
             <div className="absolute -right-16 top-0 opacity-[0.02]">
@@ -637,9 +662,11 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+        </Reveal>
       )}
 
       {/* ===== CTA BANNER ===== */}
+      <Reveal variant="scale-in" delay={100}>
       <section className="pb-14 sm:pb-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-600 via-primary-700 to-primary-900 px-8 py-12 sm:px-14 sm:py-16 text-center">
@@ -682,6 +709,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      </Reveal>
 
       <style>{`
         .notice-enter { opacity: 0; transform: translateY(8px); }

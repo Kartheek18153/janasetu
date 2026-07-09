@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../../i18n';
-import AppService from '../../services/appService';
+import { AppointmentService } from '../../services';
 import Badge from '../../components/ui/Badge';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import EmptyState from '../../components/ui/EmptyState';
@@ -26,7 +26,7 @@ export default function AdminAppointmentsPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await AppService.getAllAppointments();
+        const data = await AppointmentService.getAllAppointments();
         setAppointments(data);
       } catch {} finally {
         setLoading(false);

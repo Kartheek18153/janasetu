@@ -10,7 +10,7 @@ import {
   serverTimestamp,
   DocumentData,
 } from 'firebase/firestore';
-import { db } from './config';
+import { db } from '../firebase/config';
 import { Department, Officer, TimeSlot } from '../types';
 
 const COLLECTION = 'departments';
@@ -62,23 +62,18 @@ export const DepartmentService = {
   },
 
   async getOfficers(department?: string): Promise<Officer[]> {
-    let q;
+    let constraints = [where('isActive', '==', true)];
     if (department) {
-      q = query(collection(db, OFFICERS_COLLECTION), where('department', '==', department));
-    } else {
-      q = query(collection(db, OFFICERS_COLLECTION));
+      constraints.push(where('department', '==', department));
     }
+    const q = query(collection(db, OFFICERS_COLLECTION), ...constraints);
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => officerFromDoc(doc.id, doc.data()));
   },
 
   async getAvailableOfficers(department: string, date: Date, timeSlot: TimeSlot): Promise<Officer[]> {
     const officers = await this.getOfficers(department);
-    const available = officers.filter(o => 
-      o.isActive && 
-      o.availableSlots.includes(timeSlot)
-    );
-    return available;
+    return officers.filter(o => o.isActive && o.availableSlots.includes(timeSlot));
   },
 
   async addOfficer(data: Omit<Officer, 'id'>): Promise<string> {

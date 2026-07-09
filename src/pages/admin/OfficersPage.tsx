@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../../i18n';
-import AppService from '../../services/appService';
+import { DepartmentService } from '../../services';
 import Badge from '../../components/ui/Badge';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import EmptyState from '../../components/ui/EmptyState';
@@ -28,8 +28,8 @@ export default function AdminOfficersPage() {
     const load = async () => {
       try {
         const [offs, depts] = await Promise.all([
-          AppService.getOfficers(),
-          AppService.getDepartments(),
+          DepartmentService.getOfficers(),
+          DepartmentService.getDepartments(),
         ]);
         setOfficers(offs);
         setDepartments(depts.map(d => d.name));

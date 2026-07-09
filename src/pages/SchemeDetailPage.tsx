@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Scheme } from '../types';
-import AppService from '../services/appService';
+import { SchemeService, ExternalSchemeService } from '../services';
+import type { BudgetScheme } from '../services/externalSchemeService';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../i18n';
 import {
@@ -18,19 +19,22 @@ export default function SchemeDetailPage() {
   const { isAuthenticated, user } = useAuth();
 
   const [scheme, setScheme] = useState<Scheme | null>(null);
+  const [externalScheme, setExternalScheme] = useState<BudgetScheme | null>(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
 
   useEffect(() => {
-    if (!id) {
-      navigate('/schemes');
-      return;
-    }
-    const found = AppService.getSchemeById(id);
-    if (found) {
-      setScheme(found);
-    }
-    setLoading(false);
+    if (!id) { navigate('/schemes'); return; }
+    (async () => {
+      const found = SchemeService.getSchemeById(id);
+      if (found) {
+        setScheme(found);
+      } else {
+        const ext = await ExternalSchemeService.getBudgetSchemeById(id);
+        if (ext) setExternalScheme(ext);
+      }
+      setLoading(false);
+    })();
   }, [id, navigate]);
 
   const handleApply = async () => {
@@ -41,7 +45,7 @@ export default function SchemeDetailPage() {
     if (!scheme) return;
     setApplying(true);
     try {
-      await AppService.applyForScheme(user.uid, scheme.id, scheme.name);
+      await SchemeService.applyForScheme(user.uid, scheme.id, scheme.name);
       navigate(`/my-applications`);
     } catch {
       setApplying(false);
@@ -56,7 +60,7 @@ export default function SchemeDetailPage() {
     );
   }
 
-  if (!scheme) {
+  if (!scheme && !externalScheme) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-16 text-center">
         <InformationCircleIcon className="w-16 h-16 text-secondary-300 mx-auto mb-4" />
@@ -66,13 +70,90 @@ export default function SchemeDetailPage() {
         <p className="text-secondary-500 text-sm mb-6">
           {t('schemes.notFoundDesc')}
         </p>
-        <button
-          type="button"
-          onClick={() => navigate('/schemes')}
-          className="btn-primary btn"
-        >
+        <Link to="/schemes" className="btn-primary btn">
           {t('schemes.backToSchemes')}
+        </Link>
+      </div>
+    );
+  }
+
+  if (externalScheme) {
+    const formatCurrency = (val: number) =>
+      '₹' + (val / 1000).toLocaleString('en-IN', { maximumFractionDigits: 1 }) + 'K Cr';
+
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative auto-reveal-children">
+        <div className="absolute -right-8 top-20 w-40 h-32 opacity-[0.05] pointer-events-none hidden lg:block">
+          <img src="/images (2).jpg" alt="" className="w-full h-full object-cover rounded-xl" />
+        </div>
+        <button onClick={() => navigate(-1)} className="btn-ghost btn text-sm mb-6 gap-1.5">
+          <ArrowLeftIcon className="w-4 h-4" /> {t('common.back')}
         </button>
+
+        <div className="card mb-6">
+          <div className="card-body">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h1 className="text-2xl sm:text-3xl font-bold font-serif text-secondary-900">{externalScheme.name}</h1>
+                <p className="text-sm text-secondary-500 mt-1">{externalScheme.ministryName}</p>
+              </div>
+              <a href={externalScheme.officialUrl}
+                target="_blank" rel="noopener noreferrer"
+                className="btn-outline btn text-sm gap-2 shrink-0">
+                <ArrowTopRightOnSquareIcon className="w-4 h-4" /> Official Portal
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="card">
+              <div className="card-body">
+                <h2 className="text-lg font-bold text-secondary-900 mb-3">About This Scheme</h2>
+                <p className="text-sm text-secondary-600 leading-relaxed">{externalScheme.humanContext}</p>
+              </div>
+            </div>
+
+          </div>
+
+          <div className="space-y-6">
+            <div className="card">
+              <div className="card-body">
+                <h2 className="text-base font-bold text-secondary-900 mb-3">Budget Allocation</h2>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs text-secondary-500 mb-1">FY 2025-26</p>
+                    <p className="text-2xl font-bold font-serif text-citizen-green">{formatCurrency(externalScheme.allocation)}</p>
+                  </div>
+                  <div className="border-t border-secondary-100 pt-3">
+                    <p className="text-xs text-secondary-500 mb-1">FY 2024-25</p>
+                    <p className="text-lg font-semibold text-secondary-600">{formatCurrency(externalScheme.previousYear)}</p>
+                  </div>
+                  <div className="border-t border-secondary-100 pt-3">
+                    <p className="text-xs text-secondary-500 mb-1">Year-on-Year Change</p>
+                    <p className={`text-lg font-semibold ${externalScheme.yoyChange >= 0 ? 'text-citizen-green' : 'text-citizen-red'}`}>
+                      {externalScheme.yoyChange >= 0 ? '+' : ''}{externalScheme.yoyChange}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-center">
+              <p className="text-[11px] text-secondary-400">
+                Data from Union Budget 2025-26 &middot;
+                Last updated: {(() => {
+                  const d = ExternalSchemeService.getLastUpdated();
+                  return d ? d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'today';
+                })()}
+              </p>
+            </div>
+            <Link to="/schemes" className="btn-outline btn w-full text-sm gap-2">
+              Browse All Schemes <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
@@ -86,7 +167,7 @@ export default function SchemeDetailPage() {
     : 'bg-citizen-blue/10 text-citizen-blue';
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative auto-reveal-children">
       <div className="absolute -right-8 top-20 w-40 h-32 opacity-[0.05] pointer-events-none hidden lg:block">
         <img src="/images (2).jpg" alt="" className="w-full h-full object-cover rounded-xl" />
       </div>

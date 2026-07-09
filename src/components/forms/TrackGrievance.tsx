@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../../i18n';
-import AppService from '../../services/appService';
+import { GrievanceService } from '../../services';
 import Badge from '../ui/Badge';
 import StatusTimeline from '../ui/StatusTimeline';
 import LoadingSpinner from '../ui/LoadingSpinner';
@@ -32,7 +32,7 @@ export default function TrackGrievance({ initialTrackingId }: Props) {
     setError('');
     setGrievance(null);
     try {
-      const result = await AppService.getGrievanceByTrackingId(trimmed);
+      const result = await GrievanceService.getGrievanceByTrackingId(trimmed);
       if (result) {
         setGrievance(result);
       } else {

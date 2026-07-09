@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
 import Layout from './components/layout/Layout';
@@ -15,14 +16,17 @@ import MyApplicationsPage from './pages/MyApplicationsPage';
 import DocumentsPage from './pages/DocumentsPage';
 import AccountPage from './pages/AccountPage';
 import NotFoundPage from './pages/NotFoundPage';
-import AdminDashboard from './pages/admin/DashboardPage';
-import AdminGrievancesPage from './pages/admin/GrievancesPage';
-import AdminAnnouncementsPage from './pages/admin/AnnouncementsPage';
-import AdminAppointmentsPage from './pages/admin/AppointmentsPage';
-import AdminOfficersPage from './pages/admin/OfficersPage';
-import AdminSchedulePage from './pages/admin/SchedulePage';
-import AdminWorkspacePage from './pages/admin/WorkspacePage';
 import LoadingSpinner from './components/ui/LoadingSpinner';
+import ErrorBoundary from './components/ui/ErrorBoundary';
+
+// Lazy-loaded admin routes (code splitting)
+const AdminDashboard = lazy(() => import('./pages/admin/DashboardPage'));
+const AdminGrievancesPage = lazy(() => import('./pages/admin/GrievancesPage'));
+const AdminAnnouncementsPage = lazy(() => import('./pages/admin/AnnouncementsPage'));
+const AdminAppointmentsPage = lazy(() => import('./pages/admin/AppointmentsPage'));
+const AdminOfficersPage = lazy(() => import('./pages/admin/OfficersPage'));
+const AdminSchedulePage = lazy(() => import('./pages/admin/SchedulePage'));
+const AdminWorkspacePage = lazy(() => import('./pages/admin/WorkspacePage'));
 
 function ProtectedRoute({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) {
   const { isAuthenticated, isAdmin, loading } = useAuth();
@@ -61,30 +65,30 @@ function AppRoutes() {
         <Route path="/my-applications" element={<ProtectedRoute><MyApplicationsPage /></ProtectedRoute>} />
         <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
 
-        {/* Admin Routes */}
+        {/* Admin Routes (lazy loaded) */}
         <Route path="/admin" element={
-          <ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>
+          <ProtectedRoute adminOnly><Suspense fallback={<div className="flex justify-center py-20"><LoadingSpinner size="lg" /></div>}><AdminDashboard /></Suspense></ProtectedRoute>
         } />
         <Route path="/admin/grievances" element={
-          <ProtectedRoute adminOnly><AdminGrievancesPage /></ProtectedRoute>
+          <ProtectedRoute adminOnly><Suspense fallback={<div className="flex justify-center py-20"><LoadingSpinner size="lg" /></div>}><AdminGrievancesPage /></Suspense></ProtectedRoute>
         } />
         <Route path="/admin/schedule" element={
-          <ProtectedRoute adminOnly><AdminSchedulePage /></ProtectedRoute>
+          <ProtectedRoute adminOnly><Suspense fallback={<div className="flex justify-center py-20"><LoadingSpinner size="lg" /></div>}><AdminSchedulePage /></Suspense></ProtectedRoute>
         } />
         <Route path="/admin/workspace" element={
-          <ProtectedRoute adminOnly><AdminWorkspacePage /></ProtectedRoute>
+          <ProtectedRoute adminOnly><Suspense fallback={<div className="flex justify-center py-20"><LoadingSpinner size="lg" /></div>}><AdminWorkspacePage /></Suspense></ProtectedRoute>
         } />
         <Route path="/admin/announcements" element={
-          <ProtectedRoute adminOnly><AdminAnnouncementsPage /></ProtectedRoute>
+          <ProtectedRoute adminOnly><Suspense fallback={<div className="flex justify-center py-20"><LoadingSpinner size="lg" /></div>}><AdminAnnouncementsPage /></Suspense></ProtectedRoute>
         } />
         <Route path="/admin/appointments" element={
-          <ProtectedRoute adminOnly><AdminAppointmentsPage /></ProtectedRoute>
+          <ProtectedRoute adminOnly><Suspense fallback={<div className="flex justify-center py-20"><LoadingSpinner size="lg" /></div>}><AdminAppointmentsPage /></Suspense></ProtectedRoute>
         } />
         <Route path="/admin/officers" element={
-          <ProtectedRoute adminOnly><AdminOfficersPage /></ProtectedRoute>
+          <ProtectedRoute adminOnly><Suspense fallback={<div className="flex justify-center py-20"><LoadingSpinner size="lg" /></div>}><AdminOfficersPage /></Suspense></ProtectedRoute>
         } />
         <Route path="/admin/settings" element={
-          <ProtectedRoute adminOnly><AccountPage /></ProtectedRoute>
+          <ProtectedRoute adminOnly><Suspense fallback={<div className="flex justify-center py-20"><LoadingSpinner size="lg" /></div>}><AccountPage /></Suspense></ProtectedRoute>
         } />
 
         <Route path="*" element={<NotFoundPage />} />
@@ -97,7 +101,9 @@ export default function App() {
   return (
     <AuthProvider>
       <AppProvider>
-        <AppRoutes />
+        <ErrorBoundary>
+          <AppRoutes />
+        </ErrorBoundary>
       </AppProvider>
     </AuthProvider>
   );

@@ -11,7 +11,7 @@ import {
   serverTimestamp,
   DocumentData,
 } from 'firebase/firestore';
-import { db } from './config';
+import { db } from '../firebase/config';
 import { Appointment, AppointmentStatus, TimeSlot } from '../types';
 
 const COLLECTION = 'appointments';
@@ -30,7 +30,7 @@ function appointmentFromDoc(id: string, data: DocumentData): Appointment {
     purpose: data.purpose,
     preferredDate: data.preferredDate?.toDate?.() || data.preferredDate,
     preferredTimeSlot: data.preferredTimeSlot,
-    status: data.status,
+    status: data.status as AppointmentStatus,
     scheduledDate: data.scheduledDate?.toDate?.() || data.scheduledDate,
     scheduledTimeSlot: data.scheduledTimeSlot,
     notes: data.notes,
@@ -105,6 +105,13 @@ export const AppointmentService = {
     return snapshot.docs.map(doc => appointmentFromDoc(doc.id, doc.data()));
   },
 
+  async getAppointment(id: string): Promise<Appointment | null> {
+    const { getDoc } = await import('firebase/firestore');
+    const docRef = await getDoc(doc(db, COLLECTION, id));
+    if (!docRef.exists()) return null;
+    return appointmentFromDoc(docRef.id, docRef.data());
+  },
+
   async updateStatus(id: string, status: AppointmentStatus, notes?: string): Promise<void> {
     const updateData: Record<string, unknown> = {
       status,
@@ -121,6 +128,13 @@ export const AppointmentService = {
       status: 'rescheduled',
       updatedAt: serverTimestamp(),
     });
+  },
+
+  async update(id: string, data: Partial<Appointment>): Promise<void> {
+    const updateData = { ...data, updatedAt: serverTimestamp() };
+    delete updateData.id;
+    delete updateData.createdAt;
+    await updateDoc(doc(db, COLLECTION, id), updateData);
   },
 
   async delete(id: string): Promise<void> {

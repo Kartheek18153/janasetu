@@ -1,0 +1,204 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function userExists() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function userRole() {
+      return userExists() ? getUserData().role : null;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && userExists() && userRole() == 'admin';
+    }
+    
+    function isOfficer() {
+      return isSignedIn() && userExists() && userRole() == 'officer';
+    }
+    
+    function isAdminOrOfficer() {
+      return isAdmin() || isOfficer();
+    }
+    
+    function ownsDocument(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function isVerifiedCitizen() {
+      return isSignedIn() && userExists() && userRole() == 'citizen' && getUserData().isVerified == true;
+    }
+
+    // Users collection - users can read/write their own data, admins can read all
+    match /users/{userId} {
+      allow read: if isSignedIn() && (ownsDocument(userId) || isAdmin());
+      // Allow creating own user document (from registration, seed, etc.)
+      allow create: if ownsDocument(userId);
+      // Admin can create any user (e.g., officer accounts)
+      allow create: if isAdmin();
+      // User can update own profile but CANNOT change role (prevents escalation)
+      allow update: if ownsDocument(userId)
+        && (!('role' in request.resource.data)
+          || request.resource.data.role == resource.data.role);
+      // Admin can update any user (including role changes)
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Grievances collection
+    match /grievances/{grievanceId} {
+      // Citizens can create grievances
+      allow create: if isVerifiedCitizen() 
+        && request.resource.data.citizenId == request.auth.uid
+        && request.resource.data.status == 'submitted';
+      
+      // Citizens can read their own grievances
+      allow read: if isSignedIn() && (
+        resource.data.citizenId == request.auth.uid 
+        || isAdminOrOfficer()
+      );
+      
+      // Citizens can update their own grievances only if pending_citizen status
+      // Admins/officers can update any grievance
+      allow update: if isSignedIn() && (
+        (resource.data.citizenId == request.auth.uid && resource.data.status == 'pending_citizen')
+        || isAdminOrOfficer()
+      );
+      
+      // Only admins can delete
+      allow delete: if isAdmin();
+    }
+
+    // Appointments collection
+    match /appointments/{appointmentId} {
+      // Citizens can create appointments
+      allow create: if isVerifiedCitizen() 
+        && request.resource.data.citizenId == request.auth.uid;
+      
+      // Citizens can read their own, officers can read assigned, admins can read all
+      allow read: if isSignedIn() && (
+        resource.data.citizenId == request.auth.uid
+        || (isOfficer() && resource.data.officerId == request.auth.uid)
+        || isAdmin()
+      );
+      
+      // Citizens can update their own (reschedule/cancel), officers can update status, admins can update all
+      allow update: if isSignedIn() && (
+        (resource.data.citizenId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'notes']))
+        || (isOfficer() && resource.data.officerId == request.auth.uid)
+        || isAdmin()
+      );
+      
+      allow delete: if isAdmin();
+    }
+
+    // Announcements collection
+    match /announcements/{announcementId} {
+      // All authenticated users can read active announcements
+      allow read: if isSignedIn() && resource.data.isActive == true;
+      // Admins can read all (including drafts)
+      allow read: if isAdmin();
+      
+      // Only admins can create/update/delete announcements
+      allow write: if isAdmin();
+    }
+
+    // Departments collection
+    match /departments/{departmentId} {
+      // All authenticated users can read
+      allow read: if isSignedIn();
+      
+      // Only admins can write
+      allow write: if isAdmin();
+    }
+
+    // Officers collection
+    match /officers/{officerId} {
+      // All authenticated users can read active officers
+      allow read: if isSignedIn() && resource.data.isActive == true;
+      
+      // Only admins can write
+      allow write: if isAdmin();
+    }
+
+    // Schemes collection
+    match /schemes/{schemeId} {
+      // All authenticated users can read active schemes
+      allow read: if isSignedIn() && resource.data.isActive == true;
+      
+      // Only admins can write
+      allow write: if isAdmin();
+    }
+
+    // Scheme Applications collection
+    match /schemeApplications/{applicationId} {
+      // Citizens can create applications for themselves
+      allow create: if isVerifiedCitizen() 
+        && request.resource.data.citizenId == request.auth.uid;
+      
+      // Citizens can read their own, admins/officers can read all
+      allow read: if isSignedIn() && (
+        resource.data.citizenId == request.auth.uid
+        || isAdminOrOfficer()
+      );
+      
+      // Only admins/officers can update status
+      allow update: if isAdminOrOfficer();
+      
+      allow delete: if isAdmin();
+    }
+
+    // Notifications collection
+    match /notifications/{notificationId} {
+      // Users can read their own notifications
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      // Only system (admins/cloud functions) can create notifications
+      allow create: if isAdmin();
+      
+      // Users can mark their own as read
+      allow update: if isSignedIn() 
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      
+      allow delete: if isAdmin();
+    }
+
+    // Feedback collection
+    match /feedback/{feedbackId} {
+      // Citizens can create feedback for their resolved grievances
+      allow create: if isVerifiedCitizen() 
+        && request.resource.data.citizenId == request.auth.uid;
+      
+      // Citizens can read their own, admins can read all
+      allow read: if isSignedIn() && (
+        resource.data.citizenId == request.auth.uid
+        || isAdmin()
+      );
+      
+      allow update, delete: if isAdmin();
+    }
+
+    // Audit logs - users can only create log entries with their own actorId
+    match /auditLogs/{logId} {
+      allow create: if isSignedIn()
+        && request.resource.data.actorId == request.auth.uid;
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // Catch-all: deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

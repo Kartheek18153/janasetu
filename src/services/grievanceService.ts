@@ -10,37 +10,29 @@ import {
   where,
   orderBy,
   limit,
-  Timestamp,
+  startAfter,
   serverTimestamp,
-  increment,
+  arrayUnion,
+  onSnapshot,
   DocumentData,
   QueryConstraint,
-  startAfter,
-  onSnapshot,
-  Unsubscribe,
 } from 'firebase/firestore';
-import { db } from './config';
+import { db } from '../firebase/config';
 import {
   Grievance,
-  GrievanceStatus,
   GrievanceCategory,
   GrievancePriority,
+  GrievanceStatus,
   TimelineEvent,
   Feedback,
-  FilterOptions,
   PaginatedResponse,
+  FilterOptions,
 } from '../types';
+import { generateTrackingId } from './utils';
 
 const COLLECTION = 'grievances';
 
-function generateTrackingId(): string {
-  const prefix = 'JST';
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `${prefix}-${timestamp}-${random}`;
-}
-
-function grievanceFromDoc(id: string, data: DocumentData): Grievance {
+export function grievanceFromDoc(id: string, data: DocumentData): Grievance {
   return {
     id,
     trackingId: data.trackingId,
@@ -50,9 +42,9 @@ function grievanceFromDoc(id: string, data: DocumentData): Grievance {
     citizenEmail: data.citizenEmail,
     title: data.title,
     description: data.description,
-    category: data.category,
-    priority: data.priority,
-    status: data.status,
+    category: data.category as GrievanceCategory,
+    priority: data.priority as GrievancePriority,
+    status: data.status as GrievanceStatus,
     department: data.department,
     assignedTo: data.assignedTo,
     assignedToName: data.assignedToName,
@@ -61,7 +53,7 @@ function grievanceFromDoc(id: string, data: DocumentData): Grievance {
     timeline: (data.timeline || []).map((t: DocumentData) => ({
       ...t,
       createdAt: t.createdAt?.toDate?.() || t.createdAt,
-    })),
+    })) as TimelineEvent[],
     createdAt: data.createdAt?.toDate?.() || data.createdAt,
     updatedAt: data.updatedAt?.toDate?.() || data.updatedAt,
     resolvedAt: data.resolvedAt?.toDate?.() || data.resolvedAt,
@@ -80,7 +72,15 @@ export const GrievanceService = {
     category: GrievanceCategory;
     priority: GrievancePriority;
     department: string;
-    location: { address: string; landmark: string; city: string; wardNo: string; district: string; state: string; pincode: string };
+    location: {
+      address: string;
+      landmark: string;
+      city: string;
+      wardNo: string;
+      district: string;
+      state: string;
+      pincode: string;
+    };
     attachments?: { name: string; url: string; type: string; size: number }[];
   }): Promise<{ id: string; trackingId: string }> {
     const trackingId = generateTrackingId();
@@ -97,6 +97,8 @@ export const GrievanceService = {
       ...data,
       trackingId,
       status: 'submitted',
+      assignedTo: null,
+      assignedToName: null,
       attachments: data.attachments || [],
       timeline: [{ id: crypto.randomUUID(), ...timelineEvent }],
       createdAt: serverTimestamp(),
@@ -150,9 +152,13 @@ export const GrievanceService = {
     if (filters?.department && filters.department.length > 0) {
       constraints.push(where('department', 'in', filters.department));
     }
+    if (filters?.assignedTo) {
+      constraints.push(where('assignedTo', '==', filters.assignedTo));
+    }
 
     constraints.push(orderBy('updatedAt', 'desc'));
 
+    // Get total count
     const totalSnapshot = await getDocs(query(collection(db, COLLECTION), ...constraints));
     const total = totalSnapshot.size;
 
@@ -179,10 +185,63 @@ export const GrievanceService = {
     };
   },
 
+  async updateGrievance(id: string, data: Partial<Grievance> & { timelineEvent?: Omit<TimelineEvent, 'id'> }): Promise<void> {
+    const updateData: Record<string, unknown> = { ...data, updatedAt: serverTimestamp() };
+    delete updateData.id;
+    delete updateData.createdAt;
+    delete updateData.timeline;
+    delete updateData.resolvedAt;
+    delete updateData.timelineEvent;
+
+    if (data.timelineEvent) {
+      const grievanceSnap = await getDoc(doc(db, COLLECTION, id));
+      if (grievanceSnap.exists()) {
+        const existingTimeline = (grievanceSnap.data().timeline || []) as TimelineEvent[];
+        updateData.timeline = [...existingTimeline, { id: crypto.randomUUID(), ...data.timelineEvent }];
+      }
+    }
+
+    if (data.status === 'resolved' || data.status === 'closed') {
+      updateData.resolvedAt = serverTimestamp();
+    }
+
+    await updateDoc(doc(db, COLLECTION, id), updateData);
+  },
+
+  async assignGrievance(grievanceId: string, officerId: string, officerName: string): Promise<void> {
+    await updateDoc(doc(db, COLLECTION, grievanceId), {
+      assignedTo: officerId,
+      assignedToName: officerName,
+      status: 'assigned',
+      updatedAt: serverTimestamp(),
+      timeline: arrayUnion({
+        id: crypto.randomUUID(),
+        status: 'assigned',
+        description: `Assigned to ${officerName}`,
+        updatedBy: officerId,
+        updatedByName: officerName,
+        createdAt: new Date(),
+        isVisibleToCitizen: true,
+      }),
+    });
+  },
+
+  async addFeedback(grievanceId: string, feedback: Feedback): Promise<void> {
+    await updateDoc(doc(db, COLLECTION, grievanceId), {
+      feedback,
+      status: 'closed',
+      updatedAt: serverTimestamp(),
+    });
+  },
+
+  async deleteGrievance(id: string): Promise<void> {
+    await deleteDoc(doc(db, COLLECTION, id));
+  },
+
   subscribeToGrievances(
     callback: (grievances: Grievance[]) => void,
-    filters?: { status?: GrievanceStatus[]; department?: string }
-  ): Unsubscribe {
+    filters?: { status?: GrievanceStatus[]; department?: string; citizenId?: string }
+  ): () => void {
     let constraints: QueryConstraint[] = [];
 
     if (filters?.status && filters.status.length > 0) {
@@ -190,6 +249,9 @@ export const GrievanceService = {
     }
     if (filters?.department) {
       constraints.push(where('department', '==', filters.department));
+    }
+    if (filters?.citizenId) {
+      constraints.push(where('citizenId', '==', filters.citizenId));
     }
 
     constraints.push(orderBy('updatedAt', 'desc'));
@@ -199,89 +261,6 @@ export const GrievanceService = {
       const grievances = snapshot.docs.map(doc => grievanceFromDoc(doc.id, doc.data()));
       callback(grievances);
     });
-  },
-
-  async updateStatus(
-    id: string,
-    status: GrievanceStatus,
-    description: string,
-    updatedBy: string,
-    updatedByName: string,
-    isVisibleToCitizen: boolean = true
-  ): Promise<void> {
-    const timelineEvent: Omit<TimelineEvent, 'id'> = {
-      status,
-      description,
-      updatedBy,
-      updatedByName,
-      createdAt: new Date(),
-      isVisibleToCitizen,
-    };
-
-    const updateData: Record<string, unknown> = {
-      status,
-      updatedAt: serverTimestamp(),
-      [`timeline.${Timestamp.now().toMillis()}`]: { id: crypto.randomUUID(), ...timelineEvent },
-    };
-
-    if (status === 'resolved' || status === 'closed') {
-      updateData.resolvedAt = serverTimestamp();
-    }
-
-    await updateDoc(doc(db, COLLECTION, id), updateData);
-  },
-
-  async assignGrievance(
-    id: string,
-    assignedTo: string,
-    assignedToName: string,
-    updatedBy: string,
-    updatedByName: string
-  ): Promise<void> {
-    await this.updateStatus(id, 'assigned', `Assigned to ${assignedToName}`, updatedBy, updatedByName);
-    await updateDoc(doc(db, COLLECTION, id), {
-      assignedTo,
-      assignedToName,
-    });
-  },
-
-  async addFeedback(id: string, feedback: Feedback): Promise<void> {
-    await updateDoc(doc(db, COLLECTION, id), {
-      feedback,
-      updatedAt: serverTimestamp(),
-    });
-  },
-
-  async deleteGrievance(id: string): Promise<void> {
-    await deleteDoc(doc(db, COLLECTION, id));
-  },
-
-  async getDashboardStats(): Promise<{
-    total: number;
-    pending: number;
-    inProgress: number;
-    resolved: number;
-    rejected: number;
-    avgResolutionDays: number;
-  }> {
-    const snapshot = await getDocs(collection(db, COLLECTION));
-    const grievances = snapshot.docs.map(doc => grievanceFromDoc(doc.id, doc.data()));
-
-    const total = grievances.length;
-    const pending = grievances.filter(g => g.status === 'submitted' || g.status === 'under_review').length;
-    const inProgress = grievances.filter(g => g.status === 'assigned' || g.status === 'in_progress').length;
-    const resolved = grievances.filter(g => g.status === 'resolved' || g.status === 'closed').length;
-    const rejected = grievances.filter(g => g.status === 'rejected').length;
-
-    const resolvedGrievances = grievances.filter(g => g.resolvedAt && g.createdAt);
-    const avgResolutionDays = resolvedGrievances.length > 0
-      ? resolvedGrievances.reduce((sum, g) => {
-          const diff = g.resolvedAt!.getTime() - g.createdAt.getTime();
-          return sum + diff / (1000 * 60 * 60 * 24);
-        }, 0) / resolvedGrievances.length
-      : 0;
-
-    return { total, pending, inProgress, resolved, rejected, avgResolutionDays: Math.round(avgResolutionDays * 10) / 10 };
   },
 };
 

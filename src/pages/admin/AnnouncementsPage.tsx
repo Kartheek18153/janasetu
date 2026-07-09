@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../../i18n';
-import AppService from '../../services/appService';
+import { AnnouncementService } from '../../services';
 import Badge from '../../components/ui/Badge';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import EmptyState from '../../components/ui/EmptyState';
@@ -26,7 +26,7 @@ export default function AdminAnnouncementsPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await AppService.getAnnouncements();
+        const data = await AnnouncementService.getAllAnnouncements();
         setAnnouncements(data);
       } catch {} finally {
         setLoading(false);
@@ -140,7 +140,7 @@ export default function AdminAnnouncementsPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="label">Target Audience</label>
-              <select value={form.targetAudience} onChange={(e) => setForm(prev => ({ ...prev, targetAudience: e.target.value as any }))} className="input">
+              <select value={form.targetAudience} onChange={(e) => setForm(prev => ({ ...prev, targetAudience: e.target.value }))} className="input">
                 <option value="all">All</option>
                 <option value="citizens">Citizens Only</option>
                 <option value="officers">Officers Only</option>

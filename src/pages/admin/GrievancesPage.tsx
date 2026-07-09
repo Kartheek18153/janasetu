@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from '../../i18n';
 import { onSnapshot, collection, query, orderBy } from 'firebase/firestore';
 import { db } from '../../firebase/config';
-import { grievanceFromDoc } from '../../services/appService';
+import { grievanceFromDoc } from '../../services/grievanceService';
 import Badge from '../../components/ui/Badge';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import EmptyState from '../../components/ui/EmptyState';
@@ -66,8 +66,8 @@ export default function AdminGrievancesPage() {
       }
       return g;
     });
-    setGrievances(updated as any);
-    setSelected(updated.find(g => g.id === selected.id) as any);
+    setGrievances(updated);
+    setSelected(updated.find(g => g.id === selected.id)!);
     setStatusModal(false);
     setStatusNote('');
   };

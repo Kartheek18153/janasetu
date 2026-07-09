@@ -18,7 +18,7 @@ export default function FileGrievancePage() {
   };
 
   return (
-    <div>
+    <div className="auto-reveal-children">
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-secondary-900">{t('fileGrievance.title')}</h1>
         <p className="mt-2 text-secondary-500">{t('fileGrievance.subtitle')}</p>

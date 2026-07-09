@@ -44,16 +44,13 @@ export async function askAI(query: string): Promise<string> {
 
       if (!response.ok) {
         if (response.status === 429) continue;
-        const errText = await response.text();
-        console.error('Gemini API error:', response.status, errText);
         continue;
       }
 
       const data = await response.json();
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
       if (text) return text;
-    } catch (e) {
-      console.error('Gemini fetch error:', e);
+    } catch {
       continue;
     }
   }

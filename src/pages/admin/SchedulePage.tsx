@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
-import AppService from '../../services/appService';
+import { AppointmentService } from '../../services';
 import Badge from '../../components/ui/Badge';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import EmptyState from '../../components/ui/EmptyState';
@@ -27,7 +27,7 @@ export default function AdminSchedulePage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const all = await AppService.getAllAppointments();
+        const all = await AppointmentService.getAllAppointments();
         const todayApps = all.filter(a => new Date(a.preferredDate).toDateString() === today);
         if (user?.department) {
           setAppointments(todayApps.filter(a => a.department === user.department));
@@ -45,13 +45,13 @@ export default function AdminSchedulePage() {
 
   const updateStatus = async (id: string, status: string) => {
     try {
-      await AppService.updateAppointmentStatus(id, status);
+      await AppointmentService.updateStatus(id, status as AppointmentStatus);
       setAppointments(prev => prev.map(a => a.id === id ? { ...a, status } as Appointment : a));
     } catch {}
   };
 
   return (
-    <div>
+    <div className="auto-reveal-children">
       <div className="flex items-start justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-secondary-900">{t('admin.schedule.title')}</h1>

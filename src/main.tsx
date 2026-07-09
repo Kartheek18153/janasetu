@@ -4,7 +4,10 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import './index.css'
 import { seedFirebase, clearUsers } from './services/seedService'
-if (import.meta.env.DEV) (window as any).clearUsers = clearUsers
+
+if (import.meta.env.DEV) {
+  (window as unknown as { clearUsers: typeof clearUsers }).clearUsers = clearUsers;
+}
 
 seedFirebase()
 
