@@ -312,17 +312,17 @@ export default function Navbar() {
 
           <Modal isOpen={mobileAccessOpen} onClose={() => setMobileAccessOpen(false)} title="Obtain Mobile Access" size="sm">
             <div className="text-center py-2">
-              <p className="text-sm text-secondary-500 mb-4">Scan this QR code with your phone camera to download the JanaSetu app on Android.</p>
-              {/* ponytail: QR rendered by external api.qrserver.com; if it ever dies, add the `qrcode` npm pkg */}
+              <p className="text-sm text-secondary-500 mb-4">Scan this QR code with your phone camera, unzip the download, then tap JanaSetu.apk to install (Android).</p>
+              {/* ponytail: QR rendered by external api.qrserver.com; if it ever dies, add the `qrcode` npm pkg. Zipped because Firebase Spark plan forbids .apk files. */}
               <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`${window.location.origin}/JanaSetu.apk`)}`}
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`${window.location.origin}/JanaSetu.zip`)}`}
                 alt="JanaSetu APK download QR code"
                 className="mx-auto rounded-lg border border-secondary-200"
                 width={220}
                 height={220}
               />
               <a
-                href="/JanaSetu.apk"
+                href="/JanaSetu.zip"
                 download
                 className="mt-4 inline-block text-sm font-semibold text-blue-700 hover:underline"
               >
