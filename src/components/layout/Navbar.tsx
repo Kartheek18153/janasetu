@@ -1,11 +1,12 @@
 import { Fragment, useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Disclosure, Menu, Transition } from '@headlessui/react';
-import { Bars3Icon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { Bars3Icon, XMarkIcon, MagnifyingGlassIcon, DevicePhoneMobileIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../i18n';
 import type { SupportedLanguage } from '../../types';
 import { AuthService } from '../../services';
+import Modal from '../ui/Modal';
 
 const languages: { code: SupportedLanguage; label: string; native: string }[] = [
   { code: 'en', label: 'English', native: 'English' },
@@ -50,6 +51,7 @@ export default function Navbar() {
   const [langOpen, setLangOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [mobileAccessOpen, setMobileAccessOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -122,6 +124,15 @@ export default function Navbar() {
               </div>
 
               <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setMobileAccessOpen(true)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium text-secondary-600 hover:text-blue-700 hover:bg-blue-50 transition-colors"
+                  title="Obtain Mobile Access"
+                >
+                  <DevicePhoneMobileIcon className="h-5 w-5" />
+                  <span className="hidden lg:inline">Obtain Mobile Access</span>
+                </button>
+
                 {!isAuthPage && (
                   <button
                     onClick={() => setSearchOpen(!searchOpen)}
@@ -298,6 +309,27 @@ export default function Navbar() {
               </div>
             </Disclosure.Panel>
           </Transition>
+
+          <Modal isOpen={mobileAccessOpen} onClose={() => setMobileAccessOpen(false)} title="Obtain Mobile Access" size="sm">
+            <div className="text-center py-2">
+              <p className="text-sm text-secondary-500 mb-4">Scan this QR code with your phone camera to download the JanaSetu app on Android.</p>
+              {/* ponytail: QR rendered by external api.qrserver.com; if it ever dies, add the `qrcode` npm pkg */}
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`${window.location.origin}/JanaSetu.apk`)}`}
+                alt="JanaSetu APK download QR code"
+                className="mx-auto rounded-lg border border-secondary-200"
+                width={220}
+                height={220}
+              />
+              <a
+                href="/JanaSetu.apk"
+                download
+                className="mt-4 inline-block text-sm font-semibold text-blue-700 hover:underline"
+              >
+                Or download the APK directly
+              </a>
+            </div>
+          </Modal>
         </>
       )}
     </Disclosure>
