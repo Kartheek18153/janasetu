@@ -1,4 +1,4 @@
-# 🇮🇳 JanaSetu
+# JanaSetu
 
 ### Bridging Citizens and Government Services Through One Digital Platform
 
