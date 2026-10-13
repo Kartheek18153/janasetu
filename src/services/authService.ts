@@ -58,12 +58,36 @@ export const AuthService = {
   },
 
   async loginWithGoogle(): Promise<UserProfile> {
+    if (!auth || !db) {
+      throw new Error(
+        'Firebase is not configured. Set VITE_FIREBASE_* variables in your .env file and restart the dev server.'
+      );
+    }
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    const cred = await signInWithPopup(auth, provider);
+    let cred;
+    try {
+      cred = await signInWithPopup(auth, provider);
+    } catch (err: any) {
+      throw new Error(mapGoogleSignInError(err));
+    }
     let docSnap = await getDoc(doc(db, 'users', cred.user.uid));
-    if (docSnap.exists()) return userProfileFromDoc(docSnap.id, docSnap.data());
+    if (docSnap.exists()) {
+      const existing = userProfileFromDoc(docSnap.id, docSnap.data());
+      // Google already proves email ownership, so trust it. Older accounts
+      // created before this fix may still have isVerified:false — heal them.
+      if (!existing.isVerified && cred.user.emailVerified) {
+        await updateDoc(doc(db, 'users', cred.user.uid), {
+          isVerified: true,
+          updatedAt: serverTimestamp(),
+        });
+        return { ...existing, isVerified: true };
+      }
+      return existing;
+    }
 
+    // Google emails are pre-verified by Google — do NOT gate them behind
+    // the EmailJS code flow, otherwise every Google user gets stuck.
     const profile: UserProfile = {
       uid: cred.user.uid,
       email: cred.user.email || '',
@@ -72,7 +96,7 @@ export const AuthService = {
       role: 'citizen',
       createdAt: new Date(),
       updatedAt: new Date(),
-      isVerified: false,
+      isVerified: true,
       nationality: 'citizen',
       registrationId: generateRegistrationId(),
     };
@@ -260,6 +284,26 @@ export const AuthService = {
     return snap.data()?.isPhoneVerified ?? false;
   },
 };
+
+function mapGoogleSignInError(err: any): string {
+  const code = err?.code || '';
+  if (code === 'auth/operation-not-allowed') {
+    return 'Google sign-in is not enabled in Firebase Console > Authentication > Sign-in method. Enable the Google provider and try again.';
+  }
+  if (code === 'auth/unauthorized-domain') {
+    return 'This domain is not authorized in Firebase Console > Authentication > Settings > Authorized domains. Add localhost and your hosting domain.';
+  }
+  if (code === 'auth/popup-blocked') {
+    return 'The sign-in popup was blocked by the browser. Allow popups for this site and try again.';
+  }
+  if (code === 'auth/cancelled-popup-request' || code === 'auth/popup-closed-by-user') {
+    return 'Google sign-in was cancelled. Please try again.';
+  }
+  if (code === 'auth/network-request-failed') {
+    return 'Network error during Google sign-in. Check your connection and try again.';
+  }
+  return err?.message || 'Google sign-in failed';
+}
 
 function userProfileFromDoc(id: string, data: any): UserProfile {
   return {

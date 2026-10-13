@@ -45,6 +45,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let retryCount = 0;
     const MAX_RETRIES = 3;
 
+    if (!auth) {
+      console.warn('Firebase auth not initialized. Check VITE_FIREBASE_* env vars.');
+      setLoading(false);
+      return () => { cancelled = true; };
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (cancelled) return;
       if (pendingLoginRef.current) return;

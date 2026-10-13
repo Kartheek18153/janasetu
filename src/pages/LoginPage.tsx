@@ -74,16 +74,11 @@ export default function LoginPage() {
     setError('');
     try {
       const userProfile = await loginWithGoogle();
-      const verified = await AuthService.getEmailVerified();
-      if (!verified) {
-        await AuthService.sendVerificationCode();
-        setShowVerify(true);
-        setGoogleLoading(false);
-        return;
-      }
+      // Google already verifies email ownership — no EmailJS code step.
+      await refreshProfile();
       navigate(userProfile.role === 'admin' ? '/admin' : redirect);
     } catch (err: any) {
-      if (err.code !== 'auth/popup-closed-by-user') {
+      if (err.code !== 'auth/popup-closed-by-user' && !/cancelled/i.test(err?.message || '')) {
         setError(err.message || 'Google sign-in failed');
       }
     } finally {
